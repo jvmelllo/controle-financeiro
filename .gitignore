@@ -1,0 +1,11 @@
+# Ambiente virtual e caches do Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Segredos
+.env
+
+# Banco com seus dados reais (o demo.db pode subir)
+data/financeiro.db
