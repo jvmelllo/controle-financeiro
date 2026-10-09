@@ -71,3 +71,41 @@ def test_excluir(base):
     assert repo.excluir_transacao(tid) is True
     assert repo.buscar_transacao(tid) is None
     assert repo.excluir_transacao(tid) is False
+
+def test_categoria_duplicada():
+    repo.criar_categoria("Lazer", "saida")
+    with pytest.raises(ValueError):
+        repo.criar_categoria("Lazer", "saida")
+
+
+def test_nome_vazio():
+    with pytest.raises(ValueError):
+        repo.criar_categoria("   ", "saida")
+
+
+def test_desativar_categoria():
+    cid = repo.criar_categoria("Lazer", "saida")
+    repo.definir_categoria_ativa(cid, False)
+    assert repo.listar_categorias() == []
+    assert len(repo.listar_categorias(apenas_ativas=False)) == 1
+
+
+def test_renomear_categoria():
+    cid = repo.criar_categoria("Lazer", "saida")
+    repo.renomear_categoria(cid, "Diversão")
+    assert repo.listar_categorias()[0]["nome"] == "Diversão"
+
+
+def test_atualizar_conta():
+    cid = repo.criar_conta("Carteira", "carteira")
+    repo.atualizar_conta(cid, "Carteira nova", 2500)
+    conta = repo.listar_contas()[0]
+    assert conta["nome"] == "Carteira nova" and conta["saldo_inicial"] == 2500
+
+
+def test_conta_duplicada_e_tipo_invalido():
+    repo.criar_conta("Carteira", "carteira")
+    with pytest.raises(ValueError):
+        repo.criar_conta("Carteira", "carteira")
+    with pytest.raises(ValueError):
+        repo.criar_conta("Outra", "tipo_inexistente")

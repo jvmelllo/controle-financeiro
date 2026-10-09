@@ -1,10 +1,19 @@
 from src.database.connection import get_cursor
 from src.utils.datas import intervalo_do_mes
+from mysql.connector import errors as mysql_errors
 
 TIPOS = ("entrada", "saida")
 CAMPOS_EDITAVEIS = {
     "data", "valor", "tipo", "categoria_id", "conta_id", "descricao", "forma_pagamento",
 }
+TIPOS_CONTA = ("carteira", "corrente", "poupanca", "cartao")
+
+
+def _nome_valido(nome: str) -> str:
+    nome = (nome or "").strip()
+    if not nome:
+        raise ValueError("O nome não pode ficar vazio.")
+    return nome
 
 
 # ---------- validações ----------
@@ -28,9 +37,13 @@ def _validar_transacao(cur, valor, tipo, categoria_id) -> None:
 # ---------- categorias ----------
 def criar_categoria(nome: str, tipo: str) -> int:
     _validar_tipo(tipo)
-    with get_cursor() as cur:
-        cur.execute("INSERT INTO categorias (nome, tipo) VALUES (%s, %s)", (nome, tipo))
-        return cur.lastrowid
+    nome = _nome_valido(nome)
+    try:
+        with get_cursor() as cur:
+            cur.execute("INSERT INTO categorias (nome, tipo) VALUES (%s, %s)", (nome, tipo))
+            return cur.lastrowid
+    except mysql_errors.IntegrityError:
+        raise ValueError(f"Já existe uma categoria chamada '{nome}'.") from None
 
 
 def listar_categorias(tipo: str | None = None, apenas_ativas: bool = True) -> list[dict]:
@@ -50,14 +63,21 @@ def listar_categorias(tipo: str | None = None, apenas_ativas: bool = True) -> li
 
 # ---------- contas ----------
 def criar_conta(nome: str, tipo: str, saldo_inicial: int = 0) -> int:
-    with get_cursor() as cur:
-        cur.execute(
-            "INSERT INTO contas (nome, tipo, saldo_inicial) VALUES (%s, %s, %s)",
-            (nome, tipo, saldo_inicial),
-        )
-        return cur.lastrowid
-
-
+    nome = _nome_valido(nome)
+    if tipo not in TIPOS_CONTA:
+        raise ValueError(f"Tipo de conta inválido: {tipo!r}.")
+    if not isinstance(saldo_inicial, int) or isinstance(saldo_inicial, bool):
+        raise ValueError("O saldo inicial deve ser um inteiro, em centavos.")
+    try:
+        with get_cursor() as cur:
+            cur.execute(
+                "INSERT INTO contas (nome, tipo, saldo_inicial) VALUES (%s, %s, %s)",
+                (nome, tipo, saldo_inicial),
+            )
+            return cur.lastrowid
+    except mysql_errors.IntegrityError:
+        raise ValueError(f"Já existe uma conta chamada '{nome}'.") from None
+    
 def listar_contas() -> list[dict]:
     with get_cursor() as cur:
         cur.execute("SELECT id, nome, tipo, saldo_inicial FROM contas ORDER BY nome")
@@ -209,3 +229,33 @@ def gasto_por_categoria(inicio, fim, tipo: str = "saida") -> list[dict]:
     with get_cursor() as cur:
         cur.execute(sql, (tipo, inicio, fim))
         return [{**linha, "total": int(linha["total"])} for linha in cur.fetchall()]
+    
+    # ---------- manutenção de categorias e contas ----------
+def renomear_categoria(categoria_id: int, novo_nome: str) -> None:
+    novo_nome = _nome_valido(novo_nome)
+    try:
+        with get_cursor() as cur:
+            cur.execute("UPDATE categorias SET nome = %s WHERE id = %s", (novo_nome, categoria_id))
+    except mysql_errors.IntegrityError:
+        raise ValueError(f"Já existe uma categoria chamada '{novo_nome}'.") from None
+
+
+def definir_categoria_ativa(categoria_id: int, ativa: bool) -> None:
+    with get_cursor() as cur:
+        cur.execute(
+            "UPDATE categorias SET ativa = %s WHERE id = %s", (1 if ativa else 0, categoria_id)
+        )
+
+
+def atualizar_conta(conta_id: int, novo_nome: str, saldo_inicial: int) -> None:
+    novo_nome = _nome_valido(novo_nome)
+    if not isinstance(saldo_inicial, int) or isinstance(saldo_inicial, bool):
+        raise ValueError("O saldo inicial deve ser um inteiro, em centavos.")
+    try:
+        with get_cursor() as cur:
+            cur.execute(
+                "UPDATE contas SET nome = %s, saldo_inicial = %s WHERE id = %s",
+                (novo_nome, saldo_inicial, conta_id),
+            )
+    except mysql_errors.IntegrityError:
+        raise ValueError(f"Já existe uma conta chamada '{novo_nome}'.") from None
