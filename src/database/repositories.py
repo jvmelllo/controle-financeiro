@@ -147,3 +147,65 @@ def excluir_transacao(transacao_id: int) -> bool:
     with get_cursor() as cur:
         cur.execute("DELETE FROM transacoes WHERE id = %s", (transacao_id,))
         return cur.rowcount > 0
+
+    # ---------- agregações (usadas pelos serviços) ----------
+def total_saldo_inicial() -> int:
+    with get_cursor() as cur:
+        cur.execute("SELECT COALESCE(SUM(saldo_inicial), 0) AS total FROM contas")
+        return int(cur.fetchone()["total"])
+
+
+def somar_por_tipo(inicio=None, fim=None) -> dict:
+    """Soma de entradas e saídas (em centavos) com inicio <= data < fim."""
+    sql = "SELECT tipo, SUM(valor) AS total FROM transacoes WHERE 1 = 1"
+    params = []
+    if inicio:
+        sql += " AND data >= %s"
+        params.append(inicio)
+    if fim:
+        sql += " AND data < %s"
+        params.append(fim)
+    sql += " GROUP BY tipo"
+    totais = {"entrada": 0, "saida": 0}
+    with get_cursor() as cur:
+        cur.execute(sql, params)
+        for linha in cur.fetchall():
+            totais[linha["tipo"]] = int(linha["total"])
+    return totais
+
+
+def totais_por_mes() -> list[dict]:
+    """[{'mes': '2026-03', 'entradas': ..., 'saidas': ...}, ...] em ordem cronológica."""
+    sql = """
+        SELECT YEAR(data) AS ano, MONTH(data) AS mes,
+               SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END) AS entradas,
+               SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END) AS saidas
+        FROM transacoes
+        GROUP BY YEAR(data), MONTH(data)
+        ORDER BY YEAR(data), MONTH(data)
+    """
+    with get_cursor() as cur:
+        cur.execute(sql)
+        return [
+            {
+                "mes": f"{linha['ano']:04d}-{linha['mes']:02d}",
+                "entradas": int(linha["entradas"]),
+                "saidas": int(linha["saidas"]),
+            }
+            for linha in cur.fetchall()
+        ]
+
+
+def gasto_por_categoria(inicio, fim, tipo: str = "saida") -> list[dict]:
+    _validar_tipo(tipo)
+    sql = """
+        SELECT c.id AS categoria_id, c.nome AS categoria, SUM(t.valor) AS total
+        FROM transacoes t
+        JOIN categorias c ON c.id = t.categoria_id
+        WHERE t.tipo = %s AND t.data >= %s AND t.data < %s
+        GROUP BY c.id, c.nome
+        ORDER BY total DESC, c.nome
+    """
+    with get_cursor() as cur:
+        cur.execute(sql, (tipo, inicio, fim))
+        return [{**linha, "total": int(linha["total"])} for linha in cur.fetchall()]
