@@ -124,8 +124,17 @@ with col_b:
 
 # ---------- 4.4 Evolução do saldo ----------
 st.subheader("Evolução do saldo")
-evolucao = fluxo_caixa.evolucao_do_saldo(periodo.inicio, periodo.fim)
-if evolucao:
-    st.plotly_chart(graficos.evolucao_do_saldo(evolucao))
-else:
-    st.info("Sem movimentações neste período.")
+if (periodo.fim - periodo.inicio).days <= 93:  # até um trimestre: dia a dia
+    st.caption("Saldo ao fim de cada dia.")
+    evolucao_dia = fluxo_caixa.evolucao_diaria_do_saldo(periodo.inicio, periodo.fim)
+    if evolucao_dia:
+        st.plotly_chart(graficos.evolucao_diaria_do_saldo(evolucao_dia))
+    else:
+        st.info("Este período ainda não começou.")
+else:  # períodos longos: mês a mês
+    st.caption("Saldo ao fim de cada mês.")
+    evolucao = fluxo_caixa.evolucao_do_saldo(periodo.inicio, periodo.fim)
+    if evolucao:
+        st.plotly_chart(graficos.evolucao_do_saldo(evolucao))
+    else:
+        st.info("Sem movimentações neste período.")

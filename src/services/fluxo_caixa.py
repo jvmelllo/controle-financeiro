@@ -1,5 +1,9 @@
 from src.database import repositories as repo
 from src.utils.datas import intervalo_do_mes
+from datetime import date, timedelta
+
+from src.database import repositories as repo
+from src.utils.datas import intervalo_do_mes
 
 
 def saldo_atual() -> int:
@@ -61,4 +65,29 @@ def evolucao_do_saldo(inicio=None, fim=None) -> list[dict]:
     for linha in totais_mensais(inicio, fim):
         saldo += linha["resultado"]
         evolucao.append({"mes": linha["mes"], "saldo": saldo})
+    return evolucao
+
+def evolucao_diaria_do_saldo(inicio, fim, hoje: date | None = None) -> list[dict]:
+    """Saldo ao final de cada dia do período; dias sem movimento repetem o saldo anterior.
+
+    A série vai até hoje (ou até o último lançamento do período, se houver
+    lançamentos futuros), sem estender a linha por dias que ainda não chegaram.
+    """
+    hoje = hoje or date.today()
+    saldo = repo.total_saldo_inicial()
+    antes = repo.somar_por_tipo(fim=inicio)  # tudo o que aconteceu antes do período
+    saldo += antes["entrada"] - antes["saida"]
+
+    variacao_por_dia = {
+        linha["data"]: linha["entradas"] - linha["saidas"]
+        for linha in repo.totais_por_dia(inicio, fim)
+    }
+    dia_final = min(fim - timedelta(days=1), max([hoje, *variacao_por_dia]))
+
+    evolucao = []
+    dia = inicio
+    while dia <= dia_final:
+        saldo += variacao_por_dia.get(dia, 0)
+        evolucao.append({"data": dia, "saldo": saldo})
+        dia += timedelta(days=1)
     return evolucao

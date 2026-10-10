@@ -86,3 +86,29 @@ def test_variacao_percentual():
     assert fluxo_caixa.variacao_percentual(15000, 10000) == 50.0
     assert fluxo_caixa.variacao_percentual(10000, 20000) == -50.0
     assert fluxo_caixa.variacao_percentual(5000, 0) is None    
+
+def test_evolucao_diaria_do_saldo(cenario):
+    evolucao = fluxo_caixa.evolucao_diaria_do_saldo(
+        date(2026, 10, 1), date(2026, 11, 1), hoje=date(2026, 10, 25)
+    )
+    saldo_por_dia = {e["data"]: e["saldo"] for e in evolucao}
+    assert len(evolucao) == 25                       # 1º a 25 de outubro
+    assert evolucao[0]["saldo"] == 25000             # saldo herdado de setembro
+    assert saldo_por_dia[date(2026, 10, 3)] == 55000
+    assert saldo_por_dia[date(2026, 10, 4)] == 47000
+    assert saldo_por_dia[date(2026, 10, 19)] == 47000  # dia sem movimento repete o saldo
+    assert saldo_por_dia[date(2026, 10, 20)] == 35000
+    assert evolucao[-1] == {"data": date(2026, 10, 25), "saldo": 35000}
+
+
+def test_evolucao_diaria_vai_ate_lancamento_futuro(cenario):
+    evolucao = fluxo_caixa.evolucao_diaria_do_saldo(
+        date(2026, 10, 1), date(2026, 11, 1), hoje=date(2026, 10, 5)
+    )
+    assert evolucao[-1]["data"] == date(2026, 10, 20)
+
+
+def test_evolucao_diaria_de_periodo_futuro(cenario):
+    assert fluxo_caixa.evolucao_diaria_do_saldo(
+        date(2026, 12, 1), date(2027, 1, 1), hoje=date(2026, 10, 25)
+    ) == []    

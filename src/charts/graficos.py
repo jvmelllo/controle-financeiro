@@ -76,3 +76,15 @@ def evolucao_do_saldo(evolucao: list[dict]) -> go.Figure:
     fig.update_xaxes(type="category")
     fig.update_yaxes(tickprefix="R$ ", tickformat=",.0f")
     return _aplicar_estilo(fig)
+
+def evolucao_diaria_do_saldo(evolucao: list[dict]) -> go.Figure:
+    """evolucao: [{'data': date, 'saldo': centavos}, ...] (saldo ao fim de cada dia)."""
+    fig = go.Figure(go.Scatter(
+        x=[e["data"] for e in evolucao], y=[e["saldo"] / 100 for e in evolucao],
+        mode="lines", line=dict(color=COR_SALDO, width=3, shape="hv"), fill="tozeroy",
+        fillcolor="rgba(59, 111, 212, 0.12)",
+        hovertemplate="%{x|%d/%m/%Y}<br>R$ %{y:,.2f}<extra>Saldo</extra>",
+    ))
+    fig.update_xaxes(tickformat="%d/%m")
+    fig.update_yaxes(tickprefix="R$ ", tickformat=",.0f")
+    return _aplicar_estilo(fig)

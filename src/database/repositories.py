@@ -265,3 +265,28 @@ def atualizar_conta(conta_id: int, novo_nome: str, saldo_inicial: int) -> None:
             )
     except mysql_errors.IntegrityError:
         raise ValueError(f"Já existe uma conta chamada '{novo_nome}'.") from None
+
+
+def totais_por_dia(inicio=None, fim=None) -> list[dict]:
+    """[{'data': date, 'entradas': ..., 'saidas': ...}, ...] só dos dias com movimento."""
+    sql = """
+        SELECT data,
+               SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END) AS entradas,
+               SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END) AS saidas
+        FROM transacoes
+        WHERE 1 = 1
+    """
+    params = []
+    if inicio:
+        sql += " AND data >= %s"
+        params.append(inicio)
+    if fim:
+        sql += " AND data < %s"
+        params.append(fim)
+    sql += " GROUP BY data ORDER BY data"
+    with get_cursor() as cur:
+        cur.execute(sql, params)
+        return [
+            {"data": linha["data"], "entradas": int(linha["entradas"]), "saidas": int(linha["saidas"])}
+            for linha in cur.fetchall()
+        ]
