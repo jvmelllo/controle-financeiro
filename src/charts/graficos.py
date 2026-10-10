@@ -41,23 +41,24 @@ def gastos_por_categoria(gastos: list[dict], formato: str = "rosca") -> go.Figur
     return _aplicar_estilo(fig)
 
 
-def entradas_vs_saidas(totais: list[dict]) -> go.Figure:
-    """totais: [{'mes': 'AAAA-MM', 'entradas': c, 'saidas': c, 'resultado': c}, ...]."""
-    meses = [rotulo_mes(t["mes"]) for t in totais]
+def entradas_vs_saidas(totais: list[dict], mostrar_resultado: bool = True) -> go.Figure:
+    """totais: [{'rotulo': str, 'entradas': c, 'saidas': c, 'resultado': c}, ...] (centavos)."""
+    rotulos = [t["rotulo"] for t in totais]
     fig = go.Figure()
     fig.add_bar(
-        name="Entradas", x=meses, y=[t["entradas"] / 100 for t in totais],
+        name="Entradas", x=rotulos, y=[t["entradas"] / 100 for t in totais],
         marker_color=COR_ENTRADA, hovertemplate="R$ %{y:,.2f}<extra>Entradas</extra>",
     )
     fig.add_bar(
-        name="Saídas", x=meses, y=[t["saidas"] / 100 for t in totais],
+        name="Saídas", x=rotulos, y=[t["saidas"] / 100 for t in totais],
         marker_color=COR_SAIDA, hovertemplate="R$ %{y:,.2f}<extra>Saídas</extra>",
     )
-    fig.add_scatter(
-        name="Resultado", x=meses, y=[t["resultado"] / 100 for t in totais],
-        mode="lines+markers", line=dict(color=COR_RESULTADO, dash="dot"),
-        hovertemplate="R$ %{y:,.2f}<extra>Resultado</extra>",
-    )
+    if mostrar_resultado:
+        fig.add_scatter(
+            name="Resultado", x=rotulos, y=[t["resultado"] / 100 for t in totais],
+            mode="lines+markers", line=dict(color=COR_RESULTADO, dash="dot"),
+            hovertemplate="R$ %{y:,.2f}<extra>Resultado</extra>",
+        )
     fig.update_layout(barmode="group")
     fig.update_xaxes(type="category")
     fig.update_yaxes(tickprefix="R$ ", tickformat=",.0f")

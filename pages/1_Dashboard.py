@@ -18,7 +18,7 @@ st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 st.title("Dashboard")
 
 HOJE = date.today()
-
+ROTULO_GRANULARIDADE = {"dia": "por dia", "semana": "por semana", "mes": "por mês"}
 
 @dataclass
 class Periodo:
@@ -113,12 +113,17 @@ with col_a:
         st.plotly_chart(graficos.gastos_por_categoria(gastos, formato.lower()))
     else:
         st.info("Sem gastos neste período.")
-
+        
 with col_b:
-    st.subheader("Entradas × saídas por mês")
-    totais = fluxo_caixa.totais_mensais(periodo.inicio, periodo.fim)
+    granularidade = fluxo_caixa.granularidade_do_periodo(periodo.inicio, periodo.fim)
+    st.subheader(f"Entradas × saídas {ROTULO_GRANULARIDADE[granularidade]}")
+    totais = fluxo_caixa.totais_por_periodo(periodo.inicio, periodo.fim)
     if totais:
-        st.plotly_chart(graficos.entradas_vs_saidas(totais))
+        st.plotly_chart(
+            graficos.entradas_vs_saidas(totais, mostrar_resultado=granularidade != "dia")
+        )
+        if granularidade == "semana":
+            st.caption("Cada grupo começa na data indicada (as semanas começam na segunda-feira).")
     else:
         st.info("Sem movimentações neste período.")
 

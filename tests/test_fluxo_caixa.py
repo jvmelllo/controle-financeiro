@@ -112,3 +112,40 @@ def test_evolucao_diaria_de_periodo_futuro(cenario):
     assert fluxo_caixa.evolucao_diaria_do_saldo(
         date(2026, 12, 1), date(2027, 1, 1), hoje=date(2026, 10, 25)
     ) == []    
+
+def test_granularidade_do_periodo():
+    assert fluxo_caixa.granularidade_do_periodo(date(2026, 10, 1), date(2026, 11, 1)) == "dia"
+    assert fluxo_caixa.granularidade_do_periodo(date(2026, 7, 1), date(2026, 10, 1)) == "semana"
+    assert fluxo_caixa.granularidade_do_periodo(date(2026, 1, 1), date(2027, 1, 1)) == "mes"
+
+
+def test_totais_por_periodo_por_dia(cenario):
+    totais = fluxo_caixa.totais_por_periodo(
+        date(2026, 10, 1), date(2026, 11, 1), hoje=date(2026, 10, 25)
+    )
+    por_rotulo = {t["rotulo"]: t for t in totais}
+    assert len(totais) == 25  # 1º a 25 de outubro
+    assert por_rotulo["03/10"]["entradas"] == 30000
+    assert por_rotulo["04/10"]["saidas"] == 8000 and por_rotulo["04/10"]["resultado"] == -8000
+    assert por_rotulo["20/10"]["saidas"] == 12000
+    assert por_rotulo["10/10"] == {"rotulo": "10/10", "entradas": 0, "saidas": 0, "resultado": 0}
+
+
+def test_totais_por_periodo_por_semana(cenario):
+    totais = fluxo_caixa.totais_por_periodo(
+        date(2026, 9, 1), date(2026, 11, 1), hoje=date(2026, 10, 25)
+    )
+    assert [t["rotulo"] for t in totais] == [
+        "01/09", "07/09", "14/09", "21/09", "28/09", "05/10", "12/10", "19/10",
+    ]
+    por_rotulo = {t["rotulo"]: t for t in totais}
+    assert (por_rotulo["07/09"]["entradas"], por_rotulo["07/09"]["saidas"]) == (20000, 5000)
+    assert (por_rotulo["28/09"]["entradas"], por_rotulo["28/09"]["saidas"]) == (30000, 8000)
+    assert por_rotulo["19/10"]["saidas"] == 12000
+
+
+def test_totais_por_periodo_por_mes(cenario):
+    assert fluxo_caixa.totais_por_periodo(date(2026, 1, 1), date(2027, 1, 1)) == [
+        {"rotulo": "set/2026", "entradas": 20000, "saidas": 5000, "resultado": 15000},
+        {"rotulo": "out/2026", "entradas": 30000, "saidas": 20000, "resultado": 10000},
+    ]

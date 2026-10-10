@@ -4,6 +4,7 @@ from datetime import date, timedelta
 
 from src.database import repositories as repo
 from src.utils.datas import intervalo_do_mes
+from src.utils.datas import intervalo_do_mes, rotulo_mes
 
 
 def saldo_atual() -> int:
@@ -91,3 +92,55 @@ def evolucao_diaria_do_saldo(inicio, fim, hoje: date | None = None) -> list[dict
         evolucao.append({"data": dia, "saldo": saldo})
         dia += timedelta(days=1)
     return evolucao
+
+def granularidade_do_periodo(inicio, fim) -> str:
+    """'dia' até 31 dias, 'semana' até ~3 meses e 'mes' acima disso."""
+    dias = (fim - inicio).days
+    if dias <= 31:
+        return "dia"
+    if dias <= 93:
+        return "semana"
+    return "mes"
+
+
+def totais_por_periodo(inicio, fim, hoje: date | None = None) -> list[dict]:
+    """Entradas, saídas e resultado agrupados por dia, semana ou mês, conforme o tamanho do período.
+
+    Cada item: {'rotulo': str, 'entradas': c, 'saidas': c, 'resultado': c}. Em dia e semana,
+    o rótulo é o primeiro dia do grupo ('dd/mm'); as semanas começam na segunda-feira.
+    """
+    granularidade = granularidade_do_periodo(inicio, fim)
+    if granularidade == "mes":
+        return [
+            {
+                "rotulo": rotulo_mes(linha["mes"]),
+                "entradas": linha["entradas"],
+                "saidas": linha["saidas"],
+                "resultado": linha["resultado"],
+            }
+            for linha in totais_mensais(inicio, fim)
+        ]
+
+    hoje = hoje or date.today()
+    por_dia = {linha["data"]: linha for linha in repo.totais_por_dia(inicio, fim)}
+    dia_final = min(fim - timedelta(days=1), max([hoje, *por_dia]))
+
+    grupos: dict = {}
+    dia = inicio
+    while dia <= dia_final:
+        movimento = por_dia.get(dia, {"entradas": 0, "saidas": 0})
+        chave = dia if granularidade == "dia" else dia - timedelta(days=dia.weekday())
+        grupo = grupos.setdefault(chave, {"primeiro_dia": dia, "entradas": 0, "saidas": 0})
+        grupo["entradas"] += movimento["entradas"]
+        grupo["saidas"] += movimento["saidas"]
+        dia += timedelta(days=1)
+
+    return [
+        {
+            "rotulo": f"{grupo['primeiro_dia']:%d/%m}",
+            "entradas": grupo["entradas"],
+            "saidas": grupo["saidas"],
+            "resultado": grupo["entradas"] - grupo["saidas"],
+        }
+        for grupo in grupos.values()
+    ]
