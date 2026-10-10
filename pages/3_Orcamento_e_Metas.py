@@ -14,9 +14,9 @@ from src.utils.tema import AMARELO, AZUL, COR_DA_SITUACAO, VERDE
 
 st.set_page_config(page_title="Orçamento e metas", page_icon="🎯", layout="wide")
 st.title("Orçamento e metas")
+st.caption("Defina limites de gasto por categoria e acompanhe as reservas das suas metas.")
 
 HOJE = date.today()
-ICONES = {"ok": "🟢", "atencao": "🟡", "estourado": "🔴"}
 
 
 def manter_aberta(meta_id: int) -> None:
@@ -38,13 +38,13 @@ def cartao_do_limite(item: dict, mes: str) -> None:
     categoria_id = item["categoria_id"]
     with st.container(border=True):
         col_nome, col_acao = st.columns([5, 1], vertical_alignment="center")
-        col_nome.markdown(f"**{ICONES[item['situacao']]} {escapar_markdown(item['categoria'])}**")
-        with col_acao.popover("✏️", help="Alterar ou remover o limite"):
+        col_nome.markdown(f"**{escapar_markdown(item['categoria'])}**")
+        with col_acao.popover(":material/edit:", help="Alterar ou remover o limite"):
             novo_limite = st.number_input(
                 "Limite do mês (R$)", min_value=0.0, step=50.0, format="%.2f",
                 value=item["limite"] / 100, key=f"limite_{mes}_{categoria_id}",
             )
-            if st.button("💾 Salvar limite", type="primary", key=f"salvar_limite_{mes}_{categoria_id}"):
+            if st.button("Salvar limite", type="primary", key=f"salvar_limite_{mes}_{categoria_id}"):
                 centavos = reais_para_centavos(novo_limite)
                 if centavos <= 0:
                     st.error("Informe um limite maior que zero.")
@@ -55,7 +55,7 @@ def cartao_do_limite(item: dict, mes: str) -> None:
                         st.rerun()
                     except ValueError as erro:
                         st.error(str(erro))
-            if st.button("🗑️ Remover limite", key=f"remover_limite_{mes}_{categoria_id}"):
+            if st.button("Remover limite", key=f"remover_limite_{mes}_{categoria_id}"):
                 repo.remover_orcamento(categoria_id, mes)
                 guardar_aviso(f"Limite de {item['categoria']} removido.")
                 st.rerun()
@@ -71,7 +71,7 @@ def cartao_do_limite(item: dict, mes: str) -> None:
             st.caption(escapar_markdown(f"Restam {formatar_brl(item['restante'])}."))
 
 
-aba_orcamento, aba_metas = st.tabs(["📅 Orçamento do mês", "🎯 Metas de reserva"])
+aba_orcamento, aba_metas = st.tabs(["Orçamento do mês", "Metas de reserva"])
 
 with aba_orcamento:
     mostrar_aviso()
@@ -84,7 +84,7 @@ with aba_orcamento:
     col_mes, col_copiar = st.columns([2, 3], vertical_alignment="bottom")
     mes = col_mes.selectbox("Mês", meses, index=meses.index(mes_atual), format_func=rotulo_mes)
     mes_anterior = deslocar_meses(date(int(mes[:4]), int(mes[5:]), 1), -1).strftime("%Y-%m")
-    if col_copiar.button(f"📋 Copiar limites de {rotulo_mes(mes_anterior)}"):
+    if col_copiar.button(f"Copiar limites de {rotulo_mes(mes_anterior)}"):
         copiados = repo.copiar_orcamentos(mes_anterior, mes)
         guardar_aviso(
             f"{copiados} limite(s) copiado(s)."
@@ -114,7 +114,7 @@ with aba_orcamento:
         )
 
     categorias = repo.listar_categorias(tipo="saida")
-    with st.expander("➕ Definir limite para uma categoria", expanded=not status["itens"]):
+    with st.expander("Definir limite para uma categoria", expanded=not status["itens"]):
         if not categorias:
             st.warning("Cadastre categorias de saída na página Cadastros.")
         else:
@@ -154,8 +154,8 @@ def cartao_da_meta(meta: dict) -> None:
 
     with st.container(border=True):
         col_nome, col_contribuir = st.columns([3, 2], vertical_alignment="center")
-        col_nome.markdown(f"**{'✅' if progresso['concluida'] else '🎯'} {escapar_markdown(meta['nome'])}**")
-        with col_contribuir.popover("💰 Contribuir"):
+        col_nome.markdown(f"**{escapar_markdown(meta['nome'])}**")
+        with col_contribuir.popover("Contribuir"):
             with st.form(f"contribuicao_{mid}", clear_on_submit=True, border=False):
                 data_contribuicao = st.date_input(
                     "Data", value=HOJE, format="DD/MM/YYYY", key=f"contrib_data_{mid}"
@@ -186,10 +186,12 @@ def cartao_da_meta(meta: dict) -> None:
             f"({progresso['percentual']:.0f}%)"
         ))
         detalhes = []
+        if progresso["concluida"]:
+            detalhes.append("Meta concluída")
         if meta["prazo"]:
             detalhes.append(f"Prazo: {meta['prazo']:%d/%m/%Y}")
         if progresso["atrasada"]:
-            detalhes.append("⚠️ prazo vencido")
+            detalhes.append("Prazo vencido")
         if progresso["por_mes"]:
             detalhes.append(f"para chegar lá: cerca de {formatar_brl(progresso['por_mes'])} por mês")
         if meta["percentual_entrada"] > 0:
@@ -209,7 +211,7 @@ def cartao_da_meta(meta: dict) -> None:
                     col_data.write(f"{contribuicao['data']:%d/%m/%Y}")
                     col_valor.write(escapar_markdown(formatar_brl(contribuicao["valor"])))
                     if col_acao.button(
-                        "🗑️", key=f"excluir_contribuicao_{contribuicao['id']}",
+                        ":material/delete:", key=f"excluir_contribuicao_{contribuicao['id']}",
                         help="Excluir esta contribuição",
                     ):
                         repo.excluir_aporte(contribuicao["id"])
@@ -236,7 +238,7 @@ def cartao_da_meta(meta: dict) -> None:
                     "% de cada entrada a separar", min_value=0.0, max_value=100.0, step=1.0,
                     format="%.1f", value=meta["percentual_entrada"], key=f"meta_pct_{mid}",
                 )
-                if st.button("💾 Salvar alterações", type="primary", key=f"meta_salvar_{mid}"):
+                if st.button("Salvar alterações", type="primary", key=f"meta_salvar_{mid}"):
                     try:
                         repo.atualizar_meta(
                             mid, novo_nome, reais_para_centavos(novo_alvo), novo_prazo, novo_percentual
@@ -252,7 +254,7 @@ def cartao_da_meta(meta: dict) -> None:
                     "Confirmo que quero excluir esta meta e todas as suas contribuições.",
                     key=f"meta_confirmar_{mid}",
                 )
-                if st.button("🗑️ Excluir meta", disabled=not confirmar, key=f"meta_excluir_{mid}"):
+                if st.button("Excluir meta", disabled=not confirmar, key=f"meta_excluir_{mid}"):
                     repo.excluir_meta(mid)
                     guardar_aviso("Meta excluída.", "aviso_metas")
                     st.rerun()
@@ -278,7 +280,7 @@ with aba_metas:
     for meta in metas:
         cartao_da_meta(meta)
 
-    with st.expander("➕ Nova meta", expanded=not metas):
+    with st.expander("Nova meta", expanded=not metas):
         with st.form("nova_meta", clear_on_submit=True, border=False):
             col_nome_meta, col_valor_meta = st.columns(2)
             nome_meta = col_nome_meta.text_input(

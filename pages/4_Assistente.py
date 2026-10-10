@@ -38,7 +38,7 @@ c2.metric("⚠️ Atenção", sum(a.nivel == "atencao" for a in alertas))
 c3.metric("💡 Informativos", sum(a.nivel == "info" for a in alertas))
 
 if not alertas:
-    st.success("Tudo certo por aqui: nenhum alerta para este mês. ✅")
+    st.success("Tudo certo por aqui: nenhum alerta para este mês.")
 for alerta in alertas:
     exibir_alerta(alerta)
 
@@ -53,7 +53,7 @@ with st.expander("Como o assistente decide"):
 
 # ---------- Conversa com a IA (opcional) ----------
 st.divider()
-st.subheader("💬 Converse com o assistente")
+st.subheader("Converse com o assistente")
 
 if not ia.chave_configurada():
     st.info(
@@ -119,4 +119,4 @@ if historico:
         st.session_state["chat_ia"] = []
         st.rerun()
     feitas = sum(m["role"] == "user" for m in historico)
-    st.caption(f"{feitas} de {LIMITE_PERGUNTAS_POR_SESSAO} perguntas nesta conversa.")
+    st.caption(f"{feitas} de {LIMITE_PERGUNTAS_POR_SESSAO} perguntas nesta conversa.")

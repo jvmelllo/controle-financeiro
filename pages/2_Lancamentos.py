@@ -14,9 +14,9 @@ from src.utils.dinheiro import escapar_markdown, formatar_brl, reais_para_centav
 
 st.set_page_config(page_title="Lançamentos", page_icon="💸")
 st.title("Lançamentos")
+st.caption("Registre entradas e saídas e consulte o histórico, com filtros, edição e exclusão.")
 
 ROTULO_TIPO = {"entrada": "Entrada", "saida": "Saída"}
-ICONE_TIPO = {"entrada": "⬆️", "saida": "⬇️"}
 FORMAS = {
     "pix": "Pix", "debito": "Débito", "credito": "Crédito",
     "dinheiro": "Dinheiro", "outro": "Outro",
@@ -34,10 +34,6 @@ def rotulo(t: dict) -> str:
     return texto + (f" · {t['descricao']}" if t["descricao"] else "")
 
 
-def tipo_com_icone(tipo: str) -> str:
-    return f"{ICONE_TIPO[tipo]} {ROTULO_TIPO[tipo]}"
-
-
 def recarregar_tabela() -> None:
     """Muda a chave da tabela do histórico: a linha selecionada deixa de estar selecionada."""
     st.session_state["tabela_versao"] = st.session_state.get("tabela_versao", 0) + 1
@@ -50,7 +46,7 @@ def editar_lancamento(t: dict) -> None:
         categorias.append({"id": t["categoria_id"], "nome": f"{t['categoria']} (inativa)"})
     contas = repo.listar_contas()
 
-    st.markdown(f"**✏️ Editando:** {escapar_markdown(rotulo(t))}")
+    st.markdown(f"**Editando:** {escapar_markdown(rotulo(t))}")
     st.caption(f"Tipo: {ROTULO_TIPO[t['tipo']]}. Para mudar o tipo, exclua e lance de novo.")
     with st.form(f"editar_{tid}", border=False):
         col_valor, col_data = st.columns(2)
@@ -77,7 +73,7 @@ def editar_lancamento(t: dict) -> None:
         descricao = col_descricao.text_input(
             "Descrição", value=t["descricao"] or "", max_chars=255, key=f"e_desc_{tid}"
         )
-        salvar = st.form_submit_button("💾 Salvar alterações", type="primary")
+        salvar = st.form_submit_button("Salvar alterações", type="primary")
 
     if salvar:
         centavos = reais_para_centavos(valor)
@@ -98,7 +94,7 @@ def editar_lancamento(t: dict) -> None:
             except ValueError as erro:
                 st.error(str(erro))
 
-    with st.expander("🗑️ Excluir este lançamento"):
+    with st.expander("Excluir este lançamento"):
         confirmar = st.checkbox(
             "Confirmo que quero excluir este lançamento. Não dá para desfazer.",
             key=f"confirmar_{tid}",
@@ -110,14 +106,14 @@ def editar_lancamento(t: dict) -> None:
             st.rerun()
 
 
-aba_novo, aba_historico = st.tabs(["➕ Novo lançamento", "📋 Histórico"])
+aba_novo, aba_historico = st.tabs(["Novo lançamento", "Histórico"])
 
 # ---------- 3.1 Novo lançamento ----------
 with aba_novo:
     mostrar_aviso("aviso_novo")
 
     # o tipo fica fora do formulário para a lista de categorias acompanhar a escolha
-    tipo = st.radio("Tipo", list(ROTULO_TIPO), index=1, format_func=tipo_com_icone, horizontal=True)
+    tipo = st.radio("Tipo", list(ROTULO_TIPO), index=1, format_func=ROTULO_TIPO.get, horizontal=True)
     categorias = repo.listar_categorias(tipo=tipo)
     contas = repo.listar_contas()
 
@@ -141,7 +137,7 @@ with aba_novo:
                 )
                 descricao = col_descricao.text_input("Descrição (opcional)", max_chars=255)
                 salvar = st.form_submit_button(
-                    f"💾 Salvar {ROTULO_TIPO[tipo].lower()}", type="primary", width="stretch"
+                    f"Salvar {ROTULO_TIPO[tipo].lower()}", type="primary", width="stretch"
                 )
 
         if salvar:
@@ -169,7 +165,7 @@ with aba_novo:
     # ---------- 5.4 Reserva sugerida a cada entrada ----------
     sugestoes = st.session_state.get("sugestoes_reserva", [])
     if sugestoes:
-        st.subheader("💰 Reserva sugerida")
+        st.subheader("Reserva sugerida")
         st.caption("Pelas suas metas, parte desta entrada pode ser separada agora.")
         for sugestao in sugestoes:
             with st.container(border=True):
@@ -211,7 +207,7 @@ with aba_historico:
         )
         tipo_filtro = col2.selectbox(
             "Tipo", ["Todos", "entrada", "saida"],
-            format_func=lambda t: "Todos" if t == "Todos" else tipo_com_icone(t),
+            format_func=lambda t: "Todos" if t == "Todos" else ROTULO_TIPO[t],
         )
         categoria_filtro = col3.selectbox(
             "Categoria", [TODAS] + repo.listar_categorias(apenas_ativas=False),
@@ -237,7 +233,7 @@ with aba_historico:
         tabela = pd.DataFrame([
             {
                 "Data": t["data"].strftime("%d/%m/%Y"),
-                "Tipo": tipo_com_icone(t["tipo"]),
+                "Tipo": ROTULO_TIPO[t["tipo"]],
                 "Categoria": t["categoria"],
                 "Conta": t["conta"],
                 "Descrição": t["descricao"] or "",

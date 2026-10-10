@@ -17,6 +17,7 @@ from src.utils.dinheiro import formatar_brl
 
 st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 st.title("Dashboard")
+st.caption("Saldo, entradas, saídas e gastos por categoria no período que você escolher.")
 
 # Alertas do mês atual (independem do período escolhido abaixo)
 importantes = [a for a in gerar_alertas() if a.nivel != "info"]
@@ -150,4 +151,4 @@ else:  # períodos longos: mês a mês
     if evolucao:
         st.plotly_chart(graficos.evolucao_do_saldo(evolucao))
     else:
-        st.info("Sem movimentações neste período.")
+        st.info("Sem movimentações neste período.")

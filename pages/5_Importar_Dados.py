@@ -84,8 +84,8 @@ def situacao(item: dict) -> str:
     if item["erros"]:
         return "❌ " + " ".join(item["erros"])
     if item["duplicada"]:
-        return "⏭️ Já existe na conta (será ignorada)"
-    texto = "✅ Cria a categoria" if item["categoria_nova"] else "✅ OK"
+        return "Já existe na conta (será ignorada)"
+    texto = "Cria a categoria" if item["categoria_nova"] else "OK"
     if item["avisos"]:
         texto += " ⚠️ " + " ".join(item["avisos"])
     return texto

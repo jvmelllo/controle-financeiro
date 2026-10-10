@@ -7,6 +7,7 @@ from src.utils.dinheiro import formatar_brl, reais_para_centavos
 
 st.set_page_config(page_title="Cadastros", page_icon="🗂️")
 st.title("Cadastros")
+st.caption("Organize as categorias e as contas usadas nos seus lançamentos.")
 
 TIPOS_CONTA = {
     "carteira": "Carteira", "corrente": "Conta corrente",
@@ -21,12 +22,12 @@ def bloco_de_categorias(tipo: str, titulo: str, categorias: list[dict]) -> None:
     inativas = [c for c in categorias if not c["ativa"]]
 
     with st.form(f"nova_categoria_{tipo}", clear_on_submit=True, border=False):
-        campo, botao = st.columns([4, 1], vertical_alignment="bottom")
+        campo, botao = st.columns([3, 1], vertical_alignment="bottom")
         nome = campo.text_input(
             "Nova categoria", max_chars=60, placeholder="Nome da nova categoria",
             label_visibility="collapsed",
         )
-        adicionar = botao.form_submit_button("➕ Criar")
+        adicionar = botao.form_submit_button("Criar")
     if adicionar:
         try:
             repo.criar_categoria(nome, tipo)
@@ -38,9 +39,9 @@ def bloco_de_categorias(tipo: str, titulo: str, categorias: list[dict]) -> None:
     if not ativas:
         st.caption("Nenhuma categoria ainda.")
     for c in ativas:
-        col_nome, col_editar, col_desativar = st.columns([6, 1, 1], vertical_alignment="center")
+        col_nome, col_editar, col_desativar = st.columns([3, 1, 1], vertical_alignment="center")
         col_nome.write(c["nome"])
-        with col_editar.popover("✏️", help="Renomear"):
+        with col_editar.popover(":material/edit:", help="Renomear"):
             novo_nome = st.text_input("Novo nome", value=c["nome"], max_chars=60, key=f"nome_{c['id']}")
             if st.button("Salvar nome", key=f"salvar_{c['id']}"):
                 try:
@@ -49,7 +50,7 @@ def bloco_de_categorias(tipo: str, titulo: str, categorias: list[dict]) -> None:
                     st.rerun()
                 except ValueError as erro:
                     st.error(str(erro))
-        if col_desativar.button("🚫", key=f"desativar_{c['id']}", help="Desativar (mantém o histórico)"):
+        if col_desativar.button(":material/block:", key=f"desativar_{c['id']}", help="Desativar (mantém o histórico)"):
             repo.definir_categoria_ativa(c["id"], False)
             guardar_aviso(f"Categoria '{c['nome']}' desativada.")
             st.rerun()
@@ -77,9 +78,9 @@ with aba_categorias:
     categorias = repo.listar_categorias(apenas_ativas=False)
     col_entradas, col_saidas = st.columns(2, gap="large")
     with col_entradas:
-        bloco_de_categorias("entrada", "⬆️ Entradas", [c for c in categorias if c["tipo"] == "entrada"])
+        bloco_de_categorias("entrada", "Entradas", [c for c in categorias if c["tipo"] == "entrada"])
     with col_saidas:
-        bloco_de_categorias("saida", "⬇️ Saídas", [c for c in categorias if c["tipo"] == "saida"])
+        bloco_de_categorias("saida", "Saídas", [c for c in categorias if c["tipo"] == "saida"])
 
 # ---------- Contas ----------
 with aba_contas:
@@ -100,7 +101,7 @@ with aba_contas:
             col_info.caption(TIPOS_CONTA[conta["tipo"]])
             col_saldo.caption("Saldo inicial")
             col_saldo.write(formatar_brl(conta["saldo_inicial"]))
-            with col_editar.popover("✏️", help="Editar conta"):
+            with col_editar.popover(":material/edit:", help="Editar conta"):
                 st.caption("Atenção: alterar o saldo inicial muda o saldo atual do app.")
                 novo_nome = st.text_input(
                     "Nome", value=conta["nome"], max_chars=60, key=f"conta_nome_{id_conta}"
@@ -117,7 +118,7 @@ with aba_contas:
                     except ValueError as erro:
                         st.error(str(erro))
 
-    with st.expander("➕ Nova conta", expanded=not contas):
+    with st.expander("Nova conta", expanded=not contas):
         with st.form("nova_conta", clear_on_submit=True, border=False):
             nome_conta = st.text_input("Nome", max_chars=60, placeholder="Ex.: Conta corrente")
             tipo_conta = st.selectbox("Tipo", list(TIPOS_CONTA), format_func=TIPOS_CONTA.get)
