@@ -1,12 +1,14 @@
 import plotly.graph_objects as go
 
 from src.utils.datas import rotulo_mes
+from src.utils.tema import AZUL, CINZA, PALETA, VERDE, VERMELHO, azul_rgba
 
 # ---- Aparência: mude aqui para customizar todos os gráficos ----
-COR_ENTRADA = "#2E9E6B"
-COR_SAIDA = "#D64545"
-COR_SALDO = "#3B6FD4"
-COR_RESULTADO = "#6B7280"
+# (as cores ficam em src/utils/tema.py; o azul de destaque também está em .streamlit/config.toml)
+COR_ENTRADA = VERDE
+COR_SAIDA = VERMELHO
+COR_SALDO = AZUL
+COR_RESULTADO = CINZA
 TEMPLATE = "plotly_white"
 ALTURA = 380
 
@@ -29,13 +31,14 @@ def gastos_por_categoria(gastos: list[dict], formato: str = "rosca") -> go.Figur
 
     if formato == "barras":
         fig = go.Figure(go.Bar(
-            x=valores[::-1], y=nomes[::-1], orientation="h", marker_color=COR_SAIDA,
+            x=valores[::-1], y=nomes[::-1], orientation="h", marker_color=AZUL,
             hovertemplate="%{y}<br>R$ %{x:,.2f}<extra></extra>",
         ))
         fig.update_xaxes(tickprefix="R$ ", tickformat=",.0f")
     else:
         fig = go.Figure(go.Pie(
             labels=nomes, values=valores, hole=0.5, textinfo="percent",
+            marker=dict(colors=PALETA),
             hovertemplate="%{label}<br>R$ %{value:,.2f}<br>%{percent}<extra></extra>",
         ))
     return _aplicar_estilo(fig)
@@ -71,7 +74,7 @@ def evolucao_do_saldo(evolucao: list[dict]) -> go.Figure:
     fig = go.Figure(go.Scatter(
         x=meses, y=[e["saldo"] / 100 for e in evolucao], mode="lines+markers",
         line=dict(color=COR_SALDO, width=3), fill="tozeroy",
-        fillcolor="rgba(59, 111, 212, 0.12)",
+        fillcolor=azul_rgba(0.12),
         hovertemplate="R$ %{y:,.2f}<extra>Saldo</extra>",
     ))
     fig.update_xaxes(type="category")
@@ -83,9 +86,9 @@ def evolucao_diaria_do_saldo(evolucao: list[dict]) -> go.Figure:
     fig = go.Figure(go.Scatter(
         x=[e["data"] for e in evolucao], y=[e["saldo"] / 100 for e in evolucao],
         mode="lines", line=dict(color=COR_SALDO, width=3, shape="hv"), fill="tozeroy",
-        fillcolor="rgba(59, 111, 212, 0.12)",
+        fillcolor=azul_rgba(0.12),
         hovertemplate="%{x|%d/%m/%Y}<br>R$ %{y:,.2f}<extra>Saldo</extra>",
     ))
     fig.update_xaxes(tickformat="%d/%m")
     fig.update_yaxes(tickprefix="R$ ", tickformat=",.0f")
-    return _aplicar_estilo(fig)
+    return _aplicar_estilo(fig)

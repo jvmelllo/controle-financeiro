@@ -8,7 +8,7 @@ from src.assistant.regras import Alerta
 _ESTILO = {
     "critico": ("🚨", "239, 68, 68"),
     "atencao": ("⚠️", "234, 179, 8"),
-    "info": ("💡", "59, 130, 246"),
+    "info": ("💡", "34, 128, 243"),  # o azul de destaque do app
 }
 
 
@@ -32,4 +32,4 @@ def exibir_alerta(alerta: Alerta) -> None:
         f'<div style="margin-top: 0.3rem;">{_texto(alerta.mensagem)}</div>'
         f"{sugestao}</div>",
         unsafe_allow_html=True,
-    )
+    )

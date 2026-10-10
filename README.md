@@ -16,6 +16,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 - **Chat com IA (opcional)**, que recebe apenas um resumo agregado dos números (nunca descrições de lançamentos nem nomes de contas).
 - **Cadastros** de categorias e contas.
 - **Importação de CSV** com modelo para baixar, validação linha a linha, detecção de lançamentos duplicados e gravação "tudo ou nada".
+- **Tema claro e escuro**, com destaque em azul. Para trocar, abra o menu ⋮ (canto superior direito) e escolha *Light*, *Dark* ou *System* (segue o computador).
 
 | Orçamento e metas | Assistente |
 |---|---|
@@ -29,6 +30,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 - **Usuário do banco com privilégios mínimos**: o app só tem SELECT, INSERT, UPDATE e DELETE.
 - **Regras antes da IA**: os alertas são funções puras, transparentes e testadas. A IA é uma camada extra e opcional.
 - **Privacidade**: segredos no `.env` (fora do Git); a IA só recebe totais agregados, e só com o consentimento do usuário na tela.
+- **Cores em um só lugar**: o tema fica em `.streamlit/config.toml` e as cores usadas no código (gráficos, barras e alertas) em `src/utils/tema.py`. Um teste confere que os dois combinam e que o texto das caixas azuis tem contraste legível nos dois modos. Vermelho, amarelo e verde só aparecem quando têm significado (limite estourado, atenção, tudo certo).
 
 ## Tecnologias
 
@@ -80,13 +82,14 @@ streamlit run app.py
 python -m pytest
 ```
 
-Mais de 100 testes automatizados cobrem utilitários, regras de negócio, repositórios (no banco `financeiro_teste`) e o assistente. Nenhum teste usa a internet ou a API de IA.
+Mais de 180 testes automatizados cobrem utilitários, regras de negócio, repositórios (no banco `financeiro_teste`), o assistente e o tema. Nenhum teste usa a internet ou a API de IA.
 
 ## Estrutura
 
 ```
 app.py                página inicial
 pages/                telas do Streamlit
+.streamlit/           tema claro e escuro (config.toml)
 src/
   assistant/          regras, alertas, resumo para a IA e cliente da IA
   charts/             gráficos Plotly
@@ -100,4 +103,4 @@ docs/                 documentação e imagens
 
 ## Autor
 
-João, estudante de Sistemas de Informação. <cole aqui o link do seu LinkedIn>
+João, estudante de Sistemas de Informação. <cole aqui o link do seu LinkedIn>

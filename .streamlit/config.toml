@@ -1,0 +1,31 @@
+# Aparência do app.
+#
+# Os dois temas abaixo aparecem para escolha no menu do Streamlit, no canto superior direito:
+#   ⋮ > System (segue o computador), Light (claro) ou Dark (escuro)
+# O navegador guarda a escolha, página por página.
+#
+# A cor de destaque (abas, botões, barras, seleções) é o azul #2280F3, nos dois modos.
+# Para mudar, troque primaryColor e blueColor nos dois blocos e AZUL em src/utils/tema.py.
+# Depois de editar este arquivo, pare o app (Ctrl+C) e rode `streamlit run app.py` de novo.
+
+[theme.dark]
+primaryColor = "#2280F3"
+backgroundColor = "#0E1117"
+secondaryBackgroundColor = "#262730"
+textColor = "#FAFAFA"
+# Caixas azuis (st.info): texto em azul claro, bem legível sobre o fundo azul escuro.
+blueColor = "#2280F3"
+blueTextColor = "#9CCBFF"
+linkColor = "#9CCBFF"
+# Cores dos gráficos: começam no azul de destaque; sem vermelho, que fica só para alertas.
+chartCategoricalColors = ["#2280F3", "#7DB8FF", "#29B09D", "#7DEFA1", "#FF8700", "#FFD16A", "#6D3FC0", "#B9A2E8", "#9AA5B8", "#0F4FA8"]
+
+[theme.light]
+primaryColor = "#2280F3"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F0F2F6"
+textColor = "#1F2430"
+blueColor = "#2280F3"
+blueTextColor = "#0B4A9E"
+linkColor = "#0B4A9E"
+chartCategoricalColors = ["#2280F3", "#7DB8FF", "#29B09D", "#7DEFA1", "#FF8700", "#FFD16A", "#6D3FC0", "#B9A2E8", "#9AA5B8", "#0F4FA8"]
