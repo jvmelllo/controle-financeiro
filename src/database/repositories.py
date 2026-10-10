@@ -4,6 +4,7 @@ from mysql.connector import errors as mysql_errors
 
 from src.database.connection import get_cursor
 from src.utils.datas import intervalo_do_mes
+from src.utils.textos import normalizar_texto
 
 
 TIPOS = ("entrada", "saida")
@@ -469,3 +470,37 @@ def total_aportes_por_meta(inicio, fim) -> dict[int, int]:
         return {linha["meta_id"]: int(linha["total"]) for linha in cur.fetchall()}
 
     
+
+
+# ---------- importação em lote ----------
+def inserir_transacoes_em_lote(conta_id: int, linhas: list[dict]) -> dict:
+    """Insere várias transações de uma vez, tudo ou nada (uma única transação do banco).
+
+    Cada linha traz data, valor, tipo, descricao, forma_pagamento e categoria_id ou,
+    para uma categoria que ainda não existe, categoria_nova (o nome). Se qualquer linha
+    falhar, nada é gravado, nem as categorias criadas.
+    """
+    criadas: dict[str, int] = {}  # nome normalizado -> id criado nesta importação
+    with get_cursor() as cur:
+        cur.execute("SELECT id FROM contas WHERE id = %s", (conta_id,))
+        if cur.fetchone() is None:
+            raise ValueError("Conta inexistente.")
+        for linha in linhas:
+            categoria_id = linha.get("categoria_id")
+            if categoria_id is None:
+                nome = _nome_valido(linha.get("categoria_nova"))
+                chave = normalizar_texto(nome)
+                if chave not in criadas:
+                    _validar_tipo(linha["tipo"])
+                    cur.execute("INSERT INTO categorias (nome, tipo) VALUES (%s, %s)", (nome, linha["tipo"]))
+                    criadas[chave] = cur.lastrowid
+                categoria_id = criadas[chave]
+            _validar_transacao(cur, linha["valor"], linha["tipo"], categoria_id)
+            cur.execute(
+                """INSERT INTO transacoes
+                   (data, valor, tipo, categoria_id, conta_id, descricao, forma_pagamento)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                (linha["data"], linha["valor"], linha["tipo"], categoria_id, conta_id,
+                 linha.get("descricao"), linha.get("forma_pagamento")),
+            )
+    return {"transacoes": len(linhas), "categorias_criadas": len(criadas)}

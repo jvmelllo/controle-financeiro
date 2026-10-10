@@ -46,3 +46,4 @@ with col_esq:
 with col_dir:
     st.page_link("pages/4_Assistente.py", label="Assistente", icon="🤖")
     st.page_link("pages/6_Cadastros.py", label="Cadastros", icon="🗂️")
+    st.page_link("pages/5_Importar_Dados.py", label="Importar dados", icon="📥")

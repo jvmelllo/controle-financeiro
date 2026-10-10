@@ -15,6 +15,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 - **Assistente por regras**: alertas de orçamento, gasto acima do padrão, ritmo de gastos, saldo livre e reservas, cada um com uma sugestão do que fazer.
 - **Chat com IA (opcional)**, que recebe apenas um resumo agregado dos números (nunca descrições de lançamentos nem nomes de contas).
 - **Cadastros** de categorias e contas.
+- **Importação de CSV** com modelo para baixar, validação linha a linha, detecção de lançamentos duplicados e gravação "tudo ou nada".
 
 | Orçamento e metas | Assistente |
 |---|---|
