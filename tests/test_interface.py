@@ -5,8 +5,8 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parent.parent
 EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-➿⬀-⯿⌀-⏿←-⇿■-◿]")
-# Alertas do assistente (🚨 ⚠️ 💡 👉) e marcas de problema na prévia da importação (❌ ⚠️).
-PERMITIDOS = set("🚨⚠💡👉❌")
+# Alertas do assistente (🚨 ⚠️ 💡) e marcas de problema na prévia da importação (❌ ⚠️).
+PERMITIDOS = set("🚨⚠💡❌")
 
 
 def _arquivos_de_tela() -> list[Path]:

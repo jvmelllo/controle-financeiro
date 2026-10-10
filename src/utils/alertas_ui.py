@@ -21,7 +21,7 @@ def exibir_alerta(alerta: Alerta) -> None:
     """Mostra um alerta: fundo suave e faixa colorida à esquerda, com texto legível."""
     icone, rgb = _ESTILO[alerta.nivel]
     sugestao = (
-        f'<div style="margin-top:0.4rem;">👉 {_texto(alerta.sugestao)}</div>'
+        f'<div style="margin-top:0.4rem;">{_texto(alerta.sugestao)}</div>'
         if alerta.sugestao
         else ""
     )
