@@ -358,3 +358,102 @@ def copiar_orcamentos(mes_origem: str, mes_destino: str) -> int:
         )
         return cur.rowcount
 
+# ---------- metas de reserva ----------
+def _validar_centavos_positivos(valor, nome: str) -> None:
+    if not isinstance(valor, int) or isinstance(valor, bool) or valor <= 0:
+        raise ValueError(f"{nome} deve ser um inteiro positivo, em centavos.")
+
+
+def _validar_percentual(percentual) -> None:
+    if not 0 <= percentual <= 100:
+        raise ValueError("O percentual deve estar entre 0 e 100.")
+
+
+def criar_meta(nome: str, valor_alvo: int, prazo=None, percentual_entrada: float = 0) -> int:
+    nome = _nome_valido(nome)
+    _validar_centavos_positivos(valor_alvo, "O valor-alvo")
+    _validar_percentual(percentual_entrada)
+    with get_cursor() as cur:
+        cur.execute(
+            "INSERT INTO metas (nome, valor_alvo, prazo, percentual_entrada) VALUES (%s, %s, %s, %s)",
+            (nome, valor_alvo, prazo, percentual_entrada),
+        )
+        return cur.lastrowid
+
+
+def listar_metas() -> list[dict]:
+    """Metas com o total já aportado em cada uma (valores em centavos)."""
+    sql = """
+        SELECT m.id, m.nome, m.valor_alvo, m.prazo, m.percentual_entrada,
+               COALESCE(SUM(a.valor), 0) AS aportado
+        FROM metas m
+        LEFT JOIN aportes_meta a ON a.meta_id = m.id
+        GROUP BY m.id, m.nome, m.valor_alvo, m.prazo, m.percentual_entrada
+        ORDER BY m.nome, m.id
+    """
+    with get_cursor() as cur:
+        cur.execute(sql)
+        return [
+            {
+                **linha,
+                "valor_alvo": int(linha["valor_alvo"]),
+                "aportado": int(linha["aportado"]),
+                "percentual_entrada": float(linha["percentual_entrada"]),
+            }
+            for linha in cur.fetchall()
+        ]
+
+
+def atualizar_meta(meta_id: int, nome: str, valor_alvo: int, prazo=None,
+                   percentual_entrada: float = 0) -> None:
+    nome = _nome_valido(nome)
+    _validar_centavos_positivos(valor_alvo, "O valor-alvo")
+    _validar_percentual(percentual_entrada)
+    with get_cursor() as cur:
+        cur.execute(
+            """UPDATE metas SET nome = %s, valor_alvo = %s, prazo = %s, percentual_entrada = %s
+               WHERE id = %s""",
+            (nome, valor_alvo, prazo, percentual_entrada, meta_id),
+        )
+
+
+def excluir_meta(meta_id: int) -> None:
+    """Apaga a meta e todos os seus aportes (na mesma transação)."""
+    with get_cursor() as cur:
+        cur.execute("DELETE FROM aportes_meta WHERE meta_id = %s", (meta_id,))
+        cur.execute("DELETE FROM metas WHERE id = %s", (meta_id,))
+
+
+def inserir_aporte(meta_id: int, data, valor: int) -> int:
+    _validar_centavos_positivos(valor, "O valor do aporte")
+    with get_cursor() as cur:
+        cur.execute("SELECT id FROM metas WHERE id = %s", (meta_id,))
+        if cur.fetchone() is None:
+            raise ValueError("Meta inexistente.")
+        cur.execute(
+            "INSERT INTO aportes_meta (meta_id, data, valor) VALUES (%s, %s, %s)",
+            (meta_id, data, valor),
+        )
+        return cur.lastrowid
+
+
+def listar_aportes(meta_id: int) -> list[dict]:
+    with get_cursor() as cur:
+        cur.execute(
+            "SELECT id, data, valor FROM aportes_meta WHERE meta_id = %s ORDER BY data DESC, id DESC",
+            (meta_id,),
+        )
+        return [{**linha, "valor": int(linha["valor"])} for linha in cur.fetchall()]
+
+
+def excluir_aporte(aporte_id: int) -> None:
+    with get_cursor() as cur:
+        cur.execute("DELETE FROM aportes_meta WHERE id = %s", (aporte_id,))
+
+
+def total_reservado() -> int:
+    """Soma de todos os aportes em todas as metas (centavos)."""
+    with get_cursor() as cur:
+        cur.execute("SELECT COALESCE(SUM(valor), 0) AS total FROM aportes_meta")
+        return int(cur.fetchone()["total"])
+

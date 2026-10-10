@@ -5,6 +5,7 @@ import streamlit as st
 
 from src.database import repositories as repo
 from src.services import fluxo_caixa
+from src.services import metas as servico_metas
 from src.services.validacoes import validar_lancamento
 from src.utils.avisos import guardar_aviso, mostrar_aviso
 from src.utils.campos import campo_valor
@@ -97,6 +98,8 @@ aba_novo, aba_historico = st.tabs(["Novo lançamento", "Histórico"])
 
 # ---------- 3.1 Novo lançamento ----------
 with aba_novo:
+    mostrar_aviso("aviso_novo")
+
     # o tipo fica fora do formulário para a lista de categorias acompanhar a escolha
     tipo = st.radio("Tipo", list(ROTULO_TIPO), format_func=ROTULO_TIPO.get, horizontal=True)
     categorias = repo.listar_categorias(tipo=tipo)
@@ -115,7 +118,7 @@ with aba_novo:
             salvar = st.form_submit_button("Salvar lançamento")
 
         if salvar:
-            
+
             erros, avisos = validar_lancamento(data, centavos)
             if erros:
                 for erro in erros:
@@ -129,8 +132,41 @@ with aba_novo:
                     for aviso in avisos:
                         st.warning(aviso)
                     st.success(f"{ROTULO_TIPO[tipo]} de {formatar_brl(centavos)} registrada.")
+                    st.session_state["sugestoes_reserva"] = (
+                        [{**s, "data": data} for s in servico_metas.sugestoes_de_reserva(centavos)]
+                        if tipo == "entrada"
+                        else []
+                    )
                 except ValueError as erro:
                     st.error(str(erro))
+
+                # ---------- 5.4 Reserva sugerida a cada entrada ----------
+    sugestoes = st.session_state.get("sugestoes_reserva", [])
+    if sugestoes:
+        st.divider()
+        st.subheader("Reserva sugerida")
+        for sugestao in sugestoes:
+            col_texto, col_botao = st.columns([4, 1])
+            col_texto.write(
+                f"Separar **{formatar_brl(sugestao['valor'])}** "
+                f"({sugestao['percentual']:g}% da entrada) para **{sugestao['meta']}**."
+            )
+            if col_botao.button("Registrar", key=f"reserva_{sugestao['meta_id']}"):
+                try:
+                    repo.inserir_aporte(sugestao["meta_id"], sugestao["data"], sugestao["valor"])
+                    st.session_state["sugestoes_reserva"] = [
+                        s for s in sugestoes if s["meta_id"] != sugestao["meta_id"]
+                    ]
+                    guardar_aviso(
+                        f"Aporte de {formatar_brl(sugestao['valor'])} em {sugestao['meta']} registrado.",
+                        "aviso_novo",
+                    )
+                    st.rerun()
+                except ValueError as erro:
+                    st.error(str(erro))
+        if st.button("Dispensar sugestões"):
+            st.session_state["sugestoes_reserva"] = []
+            st.rerun()
 
 # ---------- 3.2 Histórico com filtros + 3.3 edição e exclusão ----------
 with aba_historico:
