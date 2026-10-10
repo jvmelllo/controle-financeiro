@@ -58,3 +58,31 @@ def test_evolucao_do_saldo(cenario):
         {"mes": "2026-09", "saldo": 25000},
         {"mes": "2026-10", "saldo": 35000},
     ]
+
+def test_resumo_do_periodo(cenario):
+    assert fluxo_caixa.resumo_do_periodo(date(2026, 10, 1), date(2026, 11, 1)) == {
+        "entradas": 30000, "saidas": 20000, "resultado": 10000,
+    }
+
+
+def test_totais_mensais_no_periodo(cenario):
+    totais = fluxo_caixa.totais_mensais(date(2026, 10, 1), date(2026, 11, 1))
+    assert [t["mes"] for t in totais] == ["2026-10"]
+
+
+def test_evolucao_do_saldo_no_periodo(cenario):
+    # o saldo de outubro considera o que veio antes: 10000 + 20000 - 5000 + 10000
+    assert fluxo_caixa.evolucao_do_saldo(date(2026, 10, 1), date(2026, 11, 1)) == [
+        {"mes": "2026-10", "saldo": 35000},
+    ]
+
+
+def test_gastos_por_categoria_no_periodo(cenario):
+    gastos = fluxo_caixa.gastos_por_categoria_no_periodo(date(2026, 9, 1), date(2026, 11, 1))
+    assert [(g["categoria"], g["total"]) for g in gastos] == [("Mercado", 13000), ("Lazer", 12000)]
+
+
+def test_variacao_percentual():
+    assert fluxo_caixa.variacao_percentual(15000, 10000) == 50.0
+    assert fluxo_caixa.variacao_percentual(10000, 20000) == -50.0
+    assert fluxo_caixa.variacao_percentual(5000, 0) is None    

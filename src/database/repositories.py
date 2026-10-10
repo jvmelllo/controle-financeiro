@@ -194,18 +194,25 @@ def somar_por_tipo(inicio=None, fim=None) -> dict:
     return totais
 
 
-def totais_por_mes() -> list[dict]:
+def totais_por_mes(inicio=None, fim=None) -> list[dict]:
     """[{'mes': '2026-03', 'entradas': ..., 'saidas': ...}, ...] em ordem cronológica."""
     sql = """
         SELECT YEAR(data) AS ano, MONTH(data) AS mes,
                SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END) AS entradas,
                SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END) AS saidas
         FROM transacoes
-        GROUP BY YEAR(data), MONTH(data)
-        ORDER BY YEAR(data), MONTH(data)
+        WHERE 1 = 1
     """
+    params = []
+    if inicio:
+        sql += " AND data >= %s"
+        params.append(inicio)
+    if fim:
+        sql += " AND data < %s"
+        params.append(fim)
+    sql += " GROUP BY YEAR(data), MONTH(data) ORDER BY YEAR(data), MONTH(data)"
     with get_cursor() as cur:
-        cur.execute(sql)
+        cur.execute(sql, params)
         return [
             {
                 "mes": f"{linha['ano']:04d}-{linha['mes']:02d}",
@@ -214,7 +221,6 @@ def totais_por_mes() -> list[dict]:
             }
             for linha in cur.fetchall()
         ]
-
 
 def gasto_por_categoria(inicio, fim, tipo: str = "saida") -> list[dict]:
     _validar_tipo(tipo)
