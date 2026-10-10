@@ -7,5 +7,6 @@ __pycache__/
 # Segredos
 .env
 
-# Banco com seus dados reais (o demo.db pode subir)
-data/financeiro.db
+# Dados reais (nunca no Git)
+data/*
+!data/.gitkeep

@@ -1,6 +1,5 @@
-USE financeiro;
-
 CREATE TABLE categorias (
+    
     id     INT AUTO_INCREMENT PRIMARY KEY,
     nome   VARCHAR(60) NOT NULL UNIQUE,
     tipo   ENUM('entrada','saida') NOT NULL,

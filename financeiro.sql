@@ -1,2 +1,0 @@
-USE financeiro
-schema.sql
