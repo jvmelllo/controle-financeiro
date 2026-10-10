@@ -37,13 +37,20 @@ if importantes:
     if len(importantes) > 2:
         st.caption(f"Mais {len(importantes) - 2} alerta(s) na página Assistente.")
 
+ATALHOS = [
+    ("pages/1_Dashboard.py", "📊", "Dashboard", "Saldo, gráficos e evolução do período."),
+    ("pages/2_Lancamentos.py", "💸", "Lançamentos", "Registre entradas e saídas e consulte o histórico."),
+    ("pages/3_Orcamento_e_Metas.py", "🎯", "Orçamento e metas", "Limites por categoria e reservas."),
+    ("pages/4_Assistente.py", "🤖", "Assistente", "Alertas e sugestões para gastar melhor."),
+    ("pages/5_Importar_Dados.py", "📥", "Importar dados", "Traga lançamentos de uma planilha CSV."),
+    ("pages/6_Cadastros.py", "🗂️", "Cadastros", "Categorias e contas."),
+]
+
 st.subheader("Ir para")
-col_esq, col_dir = st.columns(2)
-with col_esq:
-    st.page_link("pages/1_Dashboard.py", label="Dashboard", icon="📊")
-    st.page_link("pages/2_Lancamentos.py", label="Lançamentos", icon="💸")
-    st.page_link("pages/3_Orcamento_e_Metas.py", label="Orçamento e metas", icon="🎯")
-with col_dir:
-    st.page_link("pages/4_Assistente.py", label="Assistente", icon="🤖")
-    st.page_link("pages/6_Cadastros.py", label="Cadastros", icon="🗂️")
-    st.page_link("pages/5_Importar_Dados.py", label="Importar dados", icon="📥")
+for primeiro in range(0, len(ATALHOS), 3):
+    colunas = st.columns(3)
+    for coluna, (pagina, icone, nome, descricao) in zip(colunas, ATALHOS[primeiro:primeiro + 3]):
+        with coluna.container(border=True):
+            st.markdown(f"### {icone} {nome}")
+            st.caption(descricao)
+            st.page_link(pagina, label="Abrir", icon="➡️", width="stretch")
