@@ -158,7 +158,7 @@ with aba_novo:
                         s for s in sugestoes if s["meta_id"] != sugestao["meta_id"]
                     ]
                     guardar_aviso(
-                        f"Aporte de {formatar_brl(sugestao['valor'])} em {sugestao['meta']} registrado.",
+                        f"Contribuição de {formatar_brl(sugestao['valor'])} em {sugestao['meta']} registrada.",
                         "aviso_novo",
                     )
                     st.rerun()

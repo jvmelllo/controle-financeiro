@@ -425,7 +425,7 @@ def excluir_meta(meta_id: int) -> None:
 
 
 def inserir_aporte(meta_id: int, data, valor: int) -> int:
-    _validar_centavos_positivos(valor, "O valor do aporte")
+    _validar_centavos_positivos(valor, "O valor da contribuição")
     with get_cursor() as cur:
         cur.execute("SELECT id FROM metas WHERE id = %s", (meta_id,))
         if cur.fetchone() is None:

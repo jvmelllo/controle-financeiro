@@ -17,6 +17,10 @@ st.title("Orçamento e metas")
 HOJE = date.today()
 ICONES = {"ok": "🟢", "atencao": "🟡", "estourado": "🔴"}
 
+def manter_aberta(meta_id: int) -> None:
+    """Mantém a meta aberta depois do st.rerun()."""
+    st.session_state.setdefault("metas_abertas", set()).add(meta_id)
+
 aba_orcamento, aba_metas = st.tabs(["Orçamento do mês", "Metas de reserva"])
 
 # ---------- 5.1 Orçamento por categoria ----------
@@ -100,7 +104,7 @@ with aba_orcamento:
                 guardar_aviso(f"Limite de {alvo['categoria']} removido.")
                 st.rerun()
 
-# ---------- 5.2 e 5.3 Metas de reserva ----------
+    # ---------- 5.2 e 5.3 Metas de reserva ----------
 with aba_metas:
     mostrar_aviso("aviso_metas")
 
@@ -119,128 +123,135 @@ with aba_metas:
     if not metas:
         st.info("Nenhuma meta criada ainda. Crie a primeira abaixo, por exemplo uma reserva de emergência.")
 
+    abertas = st.session_state.get("metas_abertas", set())
     for meta in metas:
+        mid = meta["id"]
         progresso = servico_metas.progresso_da_meta(meta)
-        st.markdown(f"**{meta['nome']}**" + (" ✅" if progresso["concluida"] else ""))
-        st.progress(
-            progresso["percentual"] / 100,
-            text=(
-                f"{formatar_brl(meta['aportado'])} de {formatar_brl(meta['valor_alvo'])} "
-                f"({progresso['percentual']:.0f}%)"
-            ),
+        titulo = (
+            f"{'✅ ' if progresso['concluida'] else ''}{meta['nome']} · "
+            f"{progresso['percentual']:.0f}% "
+            f"({formatar_brl(meta['aportado'])} de {formatar_brl(meta['valor_alvo'])})"
         )
-        detalhes = []
-        if meta["prazo"]:
-            detalhes.append(f"Prazo: {meta['prazo']:%d/%m/%Y}")
-        if progresso["atrasada"]:
-            detalhes.append("⚠️ prazo vencido")
-        if progresso["por_mes"]:
-            detalhes.append(f"para chegar lá: cerca de {formatar_brl(progresso['por_mes'])} por mês")
-        if meta["percentual_entrada"] > 0:
-            detalhes.append(f"{meta['percentual_entrada']:g}% de cada entrada")
-        if detalhes:
-            st.caption(" · ".join(detalhes))
 
-    if metas:
-        st.divider()
-        st.subheader("Registrar aporte")
-        with st.form("novo_aporte", clear_on_submit=True):
-            meta_aporte = st.selectbox("Meta", metas, format_func=lambda m: m["nome"])
-            data_aporte = st.date_input("Data", value=HOJE, format="DD/MM/YYYY")
-            valor_aporte = campo_valor("Valor do aporte (R$)") or 0
-            registrar = st.form_submit_button("Registrar aporte")
-        if registrar:
-            if valor_aporte <= 0:
-                st.error("Informe um valor maior que zero.")
-            else:
-                try:
-                    repo.inserir_aporte(meta_aporte["id"], data_aporte, valor_aporte)
-                    guardar_aviso(
-                        f"Aporte de {formatar_brl(valor_aporte)} em {meta_aporte['nome']} registrado.",
-                        "aviso_metas",
-                    )
-                    st.rerun()
-                except ValueError as erro:
-                    st.error(str(erro))
+        with st.expander(titulo, expanded=mid in abertas):
+            st.progress(progresso["percentual"] / 100)
+            detalhes = []
+            if meta["prazo"]:
+                detalhes.append(f"Prazo: {meta['prazo']:%d/%m/%Y}")
+            if progresso["atrasada"]:
+                detalhes.append("⚠️ prazo vencido")
+            if progresso["por_mes"]:
+                detalhes.append(f"para chegar lá: cerca de {formatar_brl(progresso['por_mes'])} por mês")
+            if meta["percentual_entrada"] > 0:
+                detalhes.append(f"{meta['percentual_entrada']:g}% de cada entrada")
+            if detalhes:
+                st.caption(" · ".join(detalhes))
 
-        with st.expander("Ver ou excluir aportes"):
-            meta_historico = st.selectbox(
-                "Meta", metas, format_func=lambda m: m["nome"], key="meta_historico"
+            aba_contribuir, aba_historico_meta, aba_editar = st.tabs(
+                ["Contribuir", "Histórico", "Editar"]
             )
-            aportes = repo.listar_aportes(meta_historico["id"])
-            if not aportes:
-                st.caption("Nenhum aporte ainda.")
-            for aporte in aportes[:20]:
-                col_data, col_valor, col_acao = st.columns([2, 2, 1])
-                col_data.write(f"{aporte['data']:%d/%m/%Y}")
-                col_valor.write(formatar_brl(aporte["valor"]))
-                if col_acao.button("Excluir", key=f"excluir_aporte_{aporte['id']}"):
-                    repo.excluir_aporte(aporte["id"])
-                    guardar_aviso("Aporte excluído.", "aviso_metas")
+
+            with aba_contribuir:
+                with st.form(f"contribuicao_{mid}", clear_on_submit=True):
+                    data_contribuicao = st.date_input(
+                        "Data", value=HOJE, format="DD/MM/YYYY", key=f"contrib_data_{mid}"
+                    )
+                    valor_contribuicao = campo_valor(
+                        "Valor da contribuição (R$)", key=f"contrib_valor_{mid}"
+                    ) or 0
+                    registrar = st.form_submit_button("Registrar contribuição")
+                if registrar:
+                    if valor_contribuicao <= 0:
+                        st.error("Informe um valor maior que zero.")
+                    else:
+                        try:
+                            repo.inserir_aporte(mid, data_contribuicao, valor_contribuicao)
+                            manter_aberta(mid)
+                            guardar_aviso(
+                                f"Contribuição de {formatar_brl(valor_contribuicao)} "
+                                f"em {meta['nome']} registrada.",
+                                "aviso_metas",
+                            )
+                            st.rerun()
+                        except ValueError as erro:
+                            st.error(str(erro))
+
+            with aba_historico_meta:
+                contribuicoes = repo.listar_aportes(mid)
+                if not contribuicoes:
+                    st.caption("Nenhuma contribuição ainda.")
+                for contribuicao in contribuicoes[:20]:
+                    col_data, col_valor, col_acao = st.columns([2, 2, 1])
+                    col_data.write(f"{contribuicao['data']:%d/%m/%Y}")
+                    col_valor.write(formatar_brl(contribuicao["valor"]))
+                    if col_acao.button("Excluir", key=f"excluir_contribuicao_{contribuicao['id']}"):
+                        repo.excluir_aporte(contribuicao["id"])
+                        manter_aberta(mid)
+                        guardar_aviso("Contribuição excluída.", "aviso_metas")
+                        st.rerun()
+                if len(contribuicoes) > 20:
+                    st.caption(f"Mostrando as 20 mais recentes de {len(contribuicoes)}.")
+
+            with aba_editar:
+                novo_nome = st.text_input(
+                    "Nome", value=meta["nome"], max_chars=100, key=f"meta_nome_{mid}"
+                )
+                novo_alvo = st.number_input(
+                    "Valor-alvo (R$)", min_value=0.0, step=100.0, format="%.2f",
+                    value=meta["valor_alvo"] / 100, key=f"meta_alvo_{mid}",
+                )
+                novo_prazo = st.date_input(
+                    "Prazo", value=meta["prazo"], format="DD/MM/YYYY", key=f"meta_prazo_{mid}"
+                )
+                novo_percentual = st.number_input(
+                    "% de cada entrada a separar", min_value=0.0, max_value=100.0, step=1.0,
+                    format="%.1f", value=meta["percentual_entrada"], key=f"meta_pct_{mid}",
+                )
+                if st.button("Salvar alterações", key=f"meta_salvar_{mid}"):
+                    try:
+                        repo.atualizar_meta(
+                            mid, novo_nome, reais_para_centavos(novo_alvo), novo_prazo, novo_percentual
+                        )
+                        manter_aberta(mid)
+                        guardar_aviso("Meta atualizada.", "aviso_metas")
+                        st.rerun()
+                    except ValueError as erro:
+                        st.error(str(erro))
+
+                st.divider()
+                confirmar = st.checkbox(
+                    "Confirmo que quero excluir esta meta e todas as suas contribuições.",
+                    key=f"meta_confirmar_{mid}",
+                )
+                if st.button("Excluir meta", disabled=not confirmar, key=f"meta_excluir_{mid}"):
+                    repo.excluir_meta(mid)
+                    guardar_aviso("Meta excluída.", "aviso_metas")
                     st.rerun()
-            if len(aportes) > 20:
-                st.caption(f"Mostrando os 20 mais recentes de {len(aportes)}.")
+                    
 
     st.divider()
-    st.subheader("Nova meta")
-    with st.form("nova_meta", clear_on_submit=True):
-        nome_meta = st.text_input("Nome da meta", max_chars=100, placeholder="Ex.: Reserva de emergência")
-        valor_alvo = campo_valor("Valor-alvo (R$)", passo=100.0) or 0
-        prazo_meta = st.date_input(
-            "Prazo (opcional)", value=None, min_value=HOJE, format="DD/MM/YYYY"
-        )
-        percentual_meta = st.number_input(
-            "% de cada entrada a separar (opcional)", value=None, min_value=0.0, max_value=100.0,
-            step=1.0, format="%.1f", placeholder="Ex.: 10",
-        )
-        criar = st.form_submit_button("Criar meta")
-    if criar:
-        if valor_alvo <= 0:
-            st.error("Informe um valor-alvo maior que zero.")
-        else:
-            try:
-                repo.criar_meta(nome_meta, valor_alvo, prazo_meta, percentual_meta or 0)
-                guardar_aviso(f"Meta '{nome_meta.strip()}' criada.", "aviso_metas")
-                st.rerun()
-            except ValueError as erro:
-                st.error(str(erro))
-
-    if metas:
-        with st.expander("Editar ou excluir meta"):
-            meta_edicao = st.selectbox(
-                "Meta", metas, format_func=lambda m: m["nome"], key="meta_edicao"
+    with st.expander("➕ Nova meta", expanded=not metas):
+        with st.form("nova_meta", clear_on_submit=True):
+            nome_meta = st.text_input(
+                "Nome da meta", max_chars=100, placeholder="Ex.: Reserva de emergência"
             )
-            mid = meta_edicao["id"]
-            novo_nome = st.text_input(
-                "Nome", value=meta_edicao["nome"], max_chars=100, key=f"meta_nome_{mid}"
+            valor_alvo = campo_valor("Valor-alvo (R$)", passo=100.0) or 0
+            prazo_meta = st.date_input(
+                "Prazo (opcional)", value=None, min_value=HOJE, format="DD/MM/YYYY"
             )
-            novo_alvo = st.number_input(
-                "Valor-alvo (R$)", min_value=0.0, step=100.0, format="%.2f",
-                value=meta_edicao["valor_alvo"] / 100, key=f"meta_alvo_{mid}",
+            percentual_meta = st.number_input(
+                "% de cada entrada a separar (opcional)", value=None, min_value=0.0,
+                max_value=100.0, step=1.0, format="%.1f", placeholder="Ex.: 10",
             )
-            novo_prazo = st.date_input(
-                "Prazo", value=meta_edicao["prazo"], format="DD/MM/YYYY", key=f"meta_prazo_{mid}"
-            )
-            novo_percentual = st.number_input(
-                "% de cada entrada a separar", min_value=0.0, max_value=100.0, step=1.0,
-                format="%.1f", value=meta_edicao["percentual_entrada"], key=f"meta_pct_{mid}",
-            )
-            if st.button("Salvar alterações da meta", key=f"meta_salvar_{mid}"):
+            criar = st.form_submit_button("Criar meta")
+        if criar:
+            if valor_alvo <= 0:
+                st.error("Informe um valor-alvo maior que zero.")
+            else:
                 try:
-                    repo.atualizar_meta(
-                        mid, novo_nome, reais_para_centavos(novo_alvo), novo_prazo, novo_percentual
-                    )
-                    guardar_aviso("Meta atualizada.", "aviso_metas")
+                    repo.criar_meta(nome_meta, valor_alvo, prazo_meta, percentual_meta or 0)
+                    guardar_aviso(f"Meta '{nome_meta.strip()}' criada.", "aviso_metas")
                     st.rerun()
                 except ValueError as erro:
                     st.error(str(erro))
 
-            st.divider()
-            confirmar = st.checkbox(
-                "Confirmo que quero excluir esta meta e todos os seus aportes.",
-                key=f"meta_confirmar_{mid}",
-            )
-            if st.button("Excluir meta", disabled=not confirmar, key=f"meta_excluir_{mid}"):
-                repo.excluir_meta(mid)
-                guardar_aviso("Meta excluída.", "aviso_metas")
-                st.rerun()
