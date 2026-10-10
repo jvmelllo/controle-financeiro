@@ -457,3 +457,15 @@ def total_reservado() -> int:
         cur.execute("SELECT COALESCE(SUM(valor), 0) AS total FROM aportes_meta")
         return int(cur.fetchone()["total"])
 
+def total_aportes_por_meta(inicio, fim) -> dict[int, int]:
+    """Total contribuído a cada meta com inicio <= data < fim (centavos).
+    Metas sem contribuição no período não aparecem no resultado."""
+    with get_cursor() as cur:
+        cur.execute(
+            """SELECT meta_id, SUM(valor) AS total FROM aportes_meta
+               WHERE data >= %s AND data < %s GROUP BY meta_id""",
+            (inicio, fim),
+        )
+        return {linha["meta_id"]: int(linha["total"]) for linha in cur.fetchall()}
+
+    

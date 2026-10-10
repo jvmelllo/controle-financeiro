@@ -30,3 +30,7 @@ def formatar_brl(centavos: int) -> str:
     sinal = "-" if centavos < 0 else ""
     reais, cents = divmod(abs(centavos), 100)
     return f"{sinal}R$ {reais:,}".replace(",", ".") + f",{cents:02d}"
+
+def escapar_markdown(texto: str) -> str:
+    """Escapa o '$' para o Streamlit não tratar 'R$ ... R$' como fórmula matemática."""
+    return texto.replace("$", r"\$")

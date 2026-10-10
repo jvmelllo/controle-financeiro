@@ -2,7 +2,8 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 
 import streamlit as st
-
+from src.assistant.alertas import gerar_alertas
+from src.utils.alertas_ui import exibir_alerta
 from src.charts import graficos
 from src.services import fluxo_caixa
 from src.utils.datas import (
@@ -16,6 +17,13 @@ from src.utils.dinheiro import formatar_brl
 
 st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 st.title("Dashboard")
+
+# Alertas do mês atual (independem do período escolhido abaixo)
+importantes = [a for a in gerar_alertas() if a.nivel != "info"]
+for alerta in importantes[:2]:
+    exibir_alerta(alerta)
+if len(importantes) > 2:
+    st.caption(f"Mais {len(importantes) - 2} alerta(s) na página Assistente.")
 
 HOJE = date.today()
 ROTULO_GRANULARIDADE = {"dia": "por dia", "semana": "por semana", "mes": "por mês"}

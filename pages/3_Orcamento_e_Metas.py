@@ -8,8 +8,7 @@ from src.services import metas as servico_metas
 from src.utils.avisos import guardar_aviso, mostrar_aviso
 from src.utils.campos import campo_valor
 from src.utils.datas import deslocar_meses, rotulo_mes
-from src.utils.dinheiro import formatar_brl, reais_para_centavos
-
+from src.utils.dinheiro import escapar_markdown, formatar_brl, reais_para_centavos
 
 st.set_page_config(page_title="Orçamento e metas", page_icon="🎯", layout="wide")
 st.title("Orçamento e metas")
@@ -50,7 +49,7 @@ with aba_orcamento:
             st.markdown(f"**{ICONES[item['situacao']]} {item['categoria']}**")
             st.progress(
                 min(item["percentual"], 100) / 100,
-                text=(
+                text=escapar_markdown(
                     f"{formatar_brl(item['gasto'])} de {formatar_brl(item['limite'])} "
                     f"({item['percentual']:.0f}%)"
                 ),
@@ -133,7 +132,7 @@ with aba_metas:
             f"({formatar_brl(meta['aportado'])} de {formatar_brl(meta['valor_alvo'])})"
         )
 
-        with st.expander(titulo, expanded=mid in abertas):
+        with st.expander(escapar_markdown(titulo), expanded=mid in abertas):
             st.progress(progresso["percentual"] / 100)
             detalhes = []
             if meta["prazo"]:
@@ -227,7 +226,7 @@ with aba_metas:
                     repo.excluir_meta(mid)
                     guardar_aviso("Meta excluída.", "aviso_metas")
                     st.rerun()
-                    
+
 
     st.divider()
     with st.expander("➕ Nova meta", expanded=not metas):
