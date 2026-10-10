@@ -1,6 +1,10 @@
+import re
+
+from mysql.connector import errors as mysql_errors
+
 from src.database.connection import get_cursor
 from src.utils.datas import intervalo_do_mes
-from mysql.connector import errors as mysql_errors
+
 
 TIPOS = ("entrada", "saida")
 CAMPOS_EDITAVEIS = {
@@ -290,3 +294,67 @@ def totais_por_dia(inicio=None, fim=None) -> list[dict]:
             {"data": linha["data"], "entradas": int(linha["entradas"]), "saidas": int(linha["saidas"])}
             for linha in cur.fetchall()
         ]
+
+# ---------- orçamentos ----------
+def _validar_mes(mes: str) -> None:
+    if not isinstance(mes, str) or not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", mes):
+        raise ValueError("Mês inválido. Use o formato AAAA-MM.")
+
+
+def definir_orcamento(categoria_id: int, mes: str, limite: int) -> None:
+    """Cria ou atualiza o limite de gasto de uma categoria de saída em um mês ('AAAA-MM')."""
+    _validar_mes(mes)
+    if not isinstance(limite, int) or isinstance(limite, bool) or limite <= 0:
+        raise ValueError("O limite deve ser um inteiro positivo, em centavos.")
+    with get_cursor() as cur:
+        cur.execute("SELECT tipo FROM categorias WHERE id = %s", (categoria_id,))
+        categoria = cur.fetchone()
+        if categoria is None:
+            raise ValueError("Categoria inexistente.")
+        if categoria["tipo"] != "saida":
+            raise ValueError("Só categorias de saída podem ter limite de gasto.")
+        cur.execute(
+            """INSERT INTO orcamentos (categoria_id, mes, limite) VALUES (%s, %s, %s)
+               AS novo ON DUPLICATE KEY UPDATE limite = novo.limite""",
+            (categoria_id, mes, limite),
+        )
+
+
+def remover_orcamento(categoria_id: int, mes: str) -> None:
+    with get_cursor() as cur:
+        cur.execute(
+            "DELETE FROM orcamentos WHERE categoria_id = %s AND mes = %s", (categoria_id, mes)
+        )
+
+
+def listar_orcamentos(mes: str) -> list[dict]:
+    _validar_mes(mes)
+    sql = """
+        SELECT o.categoria_id, c.nome AS categoria, o.limite
+        FROM orcamentos o
+        JOIN categorias c ON c.id = o.categoria_id
+        WHERE o.mes = %s
+        ORDER BY c.nome
+    """
+    with get_cursor() as cur:
+        cur.execute(sql, (mes,))
+        return [{**linha, "limite": int(linha["limite"])} for linha in cur.fetchall()]
+
+
+def copiar_orcamentos(mes_origem: str, mes_destino: str) -> int:
+    """Copia os limites de um mês para outro sem sobrescrever os já definidos.
+
+    Devolve quantos limites foram copiados.
+    """
+    _validar_mes(mes_origem)
+    _validar_mes(mes_destino)
+    if mes_origem == mes_destino:
+        return 0
+    with get_cursor() as cur:
+        cur.execute(
+            """INSERT IGNORE INTO orcamentos (categoria_id, mes, limite)
+               SELECT categoria_id, %s, limite FROM orcamentos WHERE mes = %s""",
+            (mes_destino, mes_origem),
+        )
+        return cur.rowcount
+

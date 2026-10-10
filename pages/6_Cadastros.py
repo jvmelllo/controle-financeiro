@@ -2,6 +2,7 @@ import streamlit as st
 
 from src.database import repositories as repo
 from src.utils.avisos import guardar_aviso, mostrar_aviso
+from src.utils.campos import campo_valor
 from src.utils.dinheiro import formatar_brl, reais_para_centavos
 
 st.set_page_config(page_title="Cadastros", page_icon="🗂️")
@@ -68,11 +69,11 @@ with aba_contas:
     with st.form("nova_conta", clear_on_submit=True):
         nome_conta = st.text_input("Nome", max_chars=60)
         tipo_conta = st.selectbox("Tipo", list(TIPOS_CONTA), format_func=TIPOS_CONTA.get)
-        saldo = st.number_input("Saldo inicial (R$)", value=0.0, step=10.0, format="%.2f")
+        saldo_inicial = campo_valor("Saldo inicial (R$)", minimo=None, passo=10.0) or 0
         criar_conta = st.form_submit_button("Criar conta")
     if criar_conta:
         try:
-            repo.criar_conta(nome_conta, tipo_conta, reais_para_centavos(saldo))
+            repo.criar_conta(nome_conta, tipo_conta, saldo_inicial)
             st.success(f"Conta '{nome_conta.strip()}' criada.")
         except ValueError as erro:
             st.error(str(erro))

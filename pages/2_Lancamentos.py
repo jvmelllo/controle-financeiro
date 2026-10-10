@@ -7,7 +7,9 @@ from src.database import repositories as repo
 from src.services import fluxo_caixa
 from src.services.validacoes import validar_lancamento
 from src.utils.avisos import guardar_aviso, mostrar_aviso
+from src.utils.campos import campo_valor
 from src.utils.dinheiro import formatar_brl, reais_para_centavos
+
 
 st.set_page_config(page_title="Lançamentos", page_icon="💸")
 st.title("Lançamentos")
@@ -105,7 +107,7 @@ with aba_novo:
     else:
         with st.form("novo_lancamento", clear_on_submit=True):
             data = st.date_input("Data", value=date.today(), format="DD/MM/YYYY")
-            valor = st.number_input("Valor (R$)", min_value=0.0, step=1.0, format="%.2f")
+            centavos = campo_valor("Valor (R$)") or 0
             categoria = st.selectbox("Categoria", categorias, format_func=lambda c: c["nome"])
             conta = st.selectbox("Conta", contas, format_func=lambda c: c["nome"])
             forma = st.selectbox("Forma de pagamento", list(FORMAS), format_func=FORMAS.get)
@@ -113,7 +115,7 @@ with aba_novo:
             salvar = st.form_submit_button("Salvar lançamento")
 
         if salvar:
-            centavos = reais_para_centavos(valor)
+            
             erros, avisos = validar_lancamento(data, centavos)
             if erros:
                 for erro in erros:
