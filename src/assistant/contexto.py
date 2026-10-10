@@ -52,6 +52,24 @@ def montar_contexto(hoje: date | None = None) -> str:
         "",
     )
 
+    gastos = sorted(fluxo_caixa.gastos_por_categoria(mes), key=lambda g: g["total"], reverse=True)
+
+    # Contas já feitas aqui: modelos pequenos erram aritmética, então recebem os números prontos.
+    destaques = []
+    if resumo["saidas"] > 0:
+        media_dia = round(resumo["saidas"] / hoje.day)
+        destaques.append(f"- Média de saídas por dia no mês: {formatar_brl(media_dia)}")
+        destaques.append(
+            f"- Saídas previstas até o fim do mês, no ritmo atual: {formatar_brl(media_dia * dias_no_mes)}"
+        )
+    if gastos and resumo["saidas"] > 0:
+        maior = gastos[0]
+        destaques.append(
+            f"- Maior categoria de gasto: {maior['categoria']} "
+            f"({maior['total'] / resumo['saidas'] * 100:.0f}% das saídas do mês)"
+        )
+    texto += _secao("DESTAQUES DO MÊS", destaques, "- Sem gastos no mês.")
+
     anteriores = fluxo_caixa.totais_mensais(deslocar_meses(inicio, -MESES_NO_RESUMO), inicio)
     texto += _secao(
         "MESES ANTERIORES",
@@ -62,7 +80,6 @@ def montar_contexto(hoje: date | None = None) -> str:
         "- Sem histórico.",
     )
 
-    gastos = sorted(fluxo_caixa.gastos_por_categoria(mes), key=lambda g: g["total"], reverse=True)
     texto += _secao(
         "GASTOS POR CATEGORIA NO MÊS",
         [f"- {g['categoria']}: {formatar_brl(g['total'])}" for g in gastos],
@@ -100,4 +117,4 @@ def montar_contexto(hoje: date | None = None) -> str:
         "- Nenhum alerta.",
     )
 
-    return "\n".join(texto)
+    return "\n".join(texto)

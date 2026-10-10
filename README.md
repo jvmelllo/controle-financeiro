@@ -13,7 +13,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 - **Orçamento mensal** por categoria, com semáforo: dentro do limite, atenção (80%) e estourado.
 - **Metas de reserva** com contribuições, progresso, prazo e **reserva sugerida** a cada entrada recebida.
 - **Assistente por regras**: alertas de orçamento, gasto acima do padrão, ritmo de gastos, saldo livre e reservas, cada um com uma sugestão do que fazer.
-- **Chat com IA (opcional)**, que recebe apenas um resumo agregado dos números (nunca descrições de lançamentos nem nomes de contas).
+- **Chat com IA local (opcional)**, com o Ollama: o modelo roda no seu computador (grátis e privado) e recebe apenas um resumo agregado dos números, nunca descrições de lançamentos nem nomes de contas.
 - **Cadastros** de categorias e contas.
 - **Importação de CSV** com modelo para baixar, validação linha a linha, detecção de lançamentos duplicados e gravação "tudo ou nada".
 - **Tema claro e escuro**, com destaque em azul. Para trocar, abra o menu ⋮ (canto superior direito) e escolha *Light*, *Dark* ou *System* (segue o computador).
@@ -29,12 +29,13 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 - **Três bancos com o mesmo schema**: `financeiro` (dados reais), `financeiro_demo` (dados fictícios para desenvolver e tirar prints) e `financeiro_teste` (usado pelo pytest, com trava que impede rodar os testes em outro banco).
 - **Usuário do banco com privilégios mínimos**: o app só tem SELECT, INSERT, UPDATE e DELETE.
 - **Regras antes da IA**: os alertas são funções puras, transparentes e testadas. A IA é uma camada extra e opcional.
-- **Privacidade**: segredos no `.env` (fora do Git); a IA só recebe totais agregados, e só com o consentimento do usuário na tela.
+- **Privacidade**: segredos no `.env` (fora do Git). A IA roda localmente (Ollama), então nada sai da máquina, e ainda assim só recebe totais agregados.
+- **IA local com rede de proteção**: modelos pequenos erram contas, então o resumo já traz os cálculos prontos (média diária, projeção do mês, maior categoria) e a resposta passa por uma checagem que avisa quando cita um valor que não está nos dados.
 - **Cores em um só lugar**: o tema fica em `.streamlit/config.toml` e as cores usadas no código (gráficos, barras e alertas) em `src/utils/tema.py`. Um teste confere que os dois combinam e que o texto das caixas azuis tem contraste legível nos dois modos. Vermelho, amarelo e verde só aparecem quando têm significado (limite estourado, atenção, tudo certo).
 
 ## Tecnologias
 
-Python 3.11+ · MySQL 8 · Streamlit · Plotly · pandas · pytest · python-dotenv · API da Anthropic (opcional)
+Python 3.11+ · MySQL 8 · Streamlit · Plotly · pandas · pytest · python-dotenv · Ollama (IA local, opcional)
 
 ## Como rodar
 
@@ -74,7 +75,14 @@ python -m scripts.gerar_dados_demo
 streamlit run app.py
 ```
 
-6. (Opcional) Para ativar o chat com IA, preencha `ANTHROPIC_API_KEY` no `.env`. Sem a chave, tudo funciona, só o chat fica desativado.
+6. (Opcional) Para ativar o chat com IA local, instale o [Ollama](https://ollama.com), abra o aplicativo e baixe um modelo:
+
+```powershell
+winget install Ollama.Ollama
+ollama pull qwen2.5:3b
+```
+
+   A tela do Assistente indica o modelo mais adequado à memória do computador e lista outras opções. Para trocar o modelo padrão, defina `OLLAMA_MODELO` no `.env`. Sem o Ollama, tudo funciona, só o chat fica desativado.
 
 ## Testes
 
@@ -82,7 +90,7 @@ streamlit run app.py
 python -m pytest
 ```
 
-Mais de 180 testes automatizados cobrem utilitários, regras de negócio, repositórios (no banco `financeiro_teste`), o assistente e o tema. Nenhum teste usa a internet ou a API de IA.
+Mais de 180 testes automatizados cobrem utilitários, regras de negócio, repositórios (no banco `financeiro_teste`), o assistente e o tema. Nenhum teste usa a internet nem precisa do Ollama instalado: o servidor é simulado.
 
 ## Estrutura
 
@@ -91,7 +99,7 @@ app.py                página inicial
 pages/                telas do Streamlit
 .streamlit/           tema claro e escuro (config.toml)
 src/
-  assistant/          regras, alertas, resumo para a IA e cliente da IA
+  assistant/          regras, alertas, resumo para a IA e cliente do Ollama
   charts/             gráficos Plotly
   database/           conexão, schema.sql e repositórios (único lugar com SQL)
   services/           regras de negócio (fluxo de caixa, orçamento, metas)
@@ -103,4 +111,4 @@ docs/                 documentação e imagens
 
 ## Autor
 
-João, estudante de Sistemas de Informação. <cole aqui o link do seu LinkedIn>
+João, estudante de Sistemas de Informação. <cole aqui o link do seu LinkedIn>

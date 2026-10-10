@@ -34,6 +34,14 @@ def test_contexto_traz_os_totais_agregados():
     assert "Reserva da emergência" in contexto
 
 
+def test_contexto_traz_os_destaques_ja_calculados():
+    _dados()
+    contexto = montar_contexto(HOJE)
+    assert "Média de saídas por dia no mês: R$ 6,00" in contexto  # R$ 120 em 20 dias
+    assert "Saídas previstas até o fim do mês, no ritmo atual: R$ 186,00" in contexto  # R$ 6 x 31 dias
+    assert "Maior categoria de gasto: Lazer (100% das saídas do mês)" in contexto
+
+
 def test_contexto_nao_vaza_descricoes_nem_nomes_de_contas():
     _dados()
     contexto = montar_contexto(HOJE)
@@ -48,6 +56,7 @@ def test_contexto_inclui_os_alertas_ativos():
 
 def test_contexto_com_banco_vazio_nao_quebra():
     contexto = montar_contexto(HOJE)
+    assert "Sem gastos no mês." in contexto
     assert "Nenhum limite definido." in contexto
     assert "Nenhuma meta criada." in contexto
-    assert "Nenhum alerta." in contexto
+    assert "Nenhum alerta." in contexto
