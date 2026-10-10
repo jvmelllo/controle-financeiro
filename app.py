@@ -37,6 +37,7 @@ if importantes:
     if len(importantes) > 2:
         st.caption(f"Mais {len(importantes) - 2} alerta(s) na página Assistente.")
 
+ALTURA_CARTAO = 190  # altura fixa: os cartões ficam alinhados já no primeiro carregamento
 ATALHOS = [
     ("pages/1_Dashboard.py", "Dashboard", "Saldo, gráficos e evolução do período."),
     ("pages/2_Lancamentos.py", "Lançamentos", "Registre entradas e saídas e consulte o histórico."),
@@ -50,7 +51,7 @@ st.subheader("Ir para")
 for primeiro in range(0, len(ATALHOS), 3):
     colunas = st.columns(3)
     for coluna, (pagina, nome, descricao) in zip(colunas, ATALHOS[primeiro:primeiro + 3]):
-        with coluna.container(border=True):
+        with coluna.container(border=True, height=ALTURA_CARTAO):
             st.markdown(f"### {nome}")
             st.caption(descricao)
             st.page_link(pagina, label="Abrir", width="stretch")
