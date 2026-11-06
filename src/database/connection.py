@@ -32,8 +32,8 @@ class ModoDemonstracao(ValueError):
 def _exigir_leitura(sql) -> None:
     """Recusa qualquer comando que não seja uma consulta (ou que traga mais de um comando).
 
-    Uma segunda trava, no Python, porque nem todo servidor respeita a transação somente leitura:
-    o TiDB, por exemplo, aceita a sintaxe mas continua permitindo gravar.
+    Uma segunda trava, no Python, porque nem todo servidor aceita a transação somente leitura:
+    o TiDB, por exemplo, recusa o comando que o conector usa para abri-la.
     """
     texto = _COMENTARIOS_SQL.sub(" ", str(sql)).strip().lstrip("(").lstrip()
     corpo = texto.rstrip(";").rstrip()
@@ -97,7 +97,11 @@ def get_cursor(dictionary: bool = True):
     conn = get_connection()
     try:
         if somente_leitura:
-            conn.start_transaction(readonly=True)
+            try:
+                conn.start_transaction(readonly=True)
+            except mysql_errors.Error:
+                # nem todo servidor aceita (o TiDB recusa); a trava de comandos do cursor continua valendo
+                pass
         cursor = conn.cursor(dictionary=dictionary)
         try:
             yield _CursorSomenteLeitura(cursor) if somente_leitura else cursor

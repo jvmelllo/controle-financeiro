@@ -190,17 +190,32 @@ def test_modo_demonstracao_e_um_value_error():
     assert issubclass(connection.ModoDemonstracao, ValueError)
 
 
-def test_conexao_fecha_mesmo_se_a_transacao_nao_abrir(monkeypatch):
+def test_servidor_que_recusa_transacao_somente_leitura_continua_funcionando(monkeypatch):
+    # o TiDB não aceita "SET TRANSACTION READ ONLY"; o app não pode quebrar por isso
     conexao = _preparar(monkeypatch, demo=True)
 
-    def falhar(**opcoes):
-        raise _erro_mysql(1568)
+    def recusar(**opcoes):
+        raise errors.ProgrammingError(msg="não suportado", errno=1105)
 
-    conexao.start_transaction = falhar
-    with pytest.raises(errors.DatabaseError):
-        with connection.get_cursor():
-            pass
-    assert conexao.eventos == ["conn.close"]
+    conexao.start_transaction = recusar
+    with connection.get_cursor() as cur:
+        cur.execute("SELECT 1")
+    assert ("execute", "SELECT") in conexao.eventos
+    assert conexao.eventos[-3:] == ["commit", "cursor.close", "conn.close"]
+
+
+def test_sem_transacao_somente_leitura_a_trava_de_comandos_segura_as_gravacoes(monkeypatch):
+    conexao = _preparar(monkeypatch, demo=True)
+
+    def recusar(**opcoes):
+        raise errors.ProgrammingError(msg="não suportado", errno=1105)
+
+    conexao.start_transaction = recusar
+    with pytest.raises(connection.ModoDemonstracao):
+        with connection.get_cursor() as cur:
+            cur.execute("DELETE FROM transacoes")
+    assert not any(e[0] == "execute" for e in conexao.eventos if isinstance(e, tuple))
+    assert conexao.eventos[-1] == "conn.close"
 
 
 # ---------- configuração da conexão ----------

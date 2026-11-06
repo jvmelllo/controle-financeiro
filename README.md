@@ -149,7 +149,7 @@ O app usa o modelo definido em `OLLAMA_MODELO` (no `.env`); sem isso, usa o `qwe
 Para deixar o app aberto por um link, sem depender do seu computador, dá para publicá-lo de graça com **dados fictícios**: o banco fica no [TiDB Cloud](https://tidbcloud.com) (compatível com MySQL, plano gratuito sem cartão) e o app no [Streamlit Community Cloud](https://streamlit.io/cloud). A versão publicada funciona em **modo demonstração**:
 
 - É **somente leitura**: quem visitar pode navegar, filtrar e ver os gráficos, mas nada é salvo, editado ou excluído. As telas mostram um aviso em vez de quebrar.
-- Duas travas impedem gravações: cada comando SQL é conferido antes de ir ao banco (só consultas passam) e, nos servidores que respeitam isso, a transação também é aberta como somente leitura. O TiDB ignora essa segunda trava, por isso a primeira existe.
+- Duas travas impedem gravações: cada comando SQL é conferido antes de ir ao banco (só consultas passam) e, nos servidores que respeitam isso, a transação também é aberta como somente leitura. O TiDB não aceita essa segunda trava, por isso a primeira existe.
 - Só abre bancos cujo nome termina em `_demo`. Se alguém configurar o banco real (`financeiro`) por engano, o app se recusa a iniciar.
 - O chat com IA não aparece, porque o Ollama roda no computador de quem usa. Os alertas por regras continuam.
 - Uma faixa no topo de cada tela explica que é uma demonstração, com o link do projeto.
