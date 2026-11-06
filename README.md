@@ -4,7 +4,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 
 > Os prints abaixo usam apenas **dados fictícios** (banco `financeiro_demo`).
 
-![Dashboard](docs/img/dashboard.png)
+![Tela inicial](docs/img/home.png)
 
 ## Funcionalidades
 
@@ -18,9 +18,35 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 - **Importação de CSV** com modelo para baixar, validação linha a linha, detecção de lançamentos duplicados e gravação "tudo ou nada".
 - **Tema claro e escuro**, com destaque em azul. Para trocar, abra o menu ⋮ (canto superior direito) e escolha *Light*, *Dark* ou *System* (segue o computador).
 
-| Orçamento e metas | Assistente |
-|---|---|
-| ![Orçamento e metas](docs/img/orcamento-metas.png) | ![Assistente](docs/img/assistente.png) |
+## Telas
+
+**Dashboard**: indicadores do período, com variação em relação ao período anterior.
+
+![Dashboard](docs/img/dashboard-info.png)
+
+**Gráficos**: gastos por categoria, entradas × saídas e evolução do saldo.
+
+![Gráficos do dashboard](docs/img/dashboard-graficos.png)
+
+**Orçamento e metas**: limites por categoria com semáforo, e metas de reserva com contribuições.
+
+![Orçamento e metas](docs/img/orcamento-metas.png)
+
+**Assistente**: alertas por regras, cada um com uma sugestão do que fazer.
+
+![Assistente](docs/img/assistente.png)
+
+**Chat com IA local**: o modelo roda no computador (Ollama) e recebe só um resumo agregado. Note o aviso quando a resposta cita um valor que não está nos dados.
+
+![Chat com IA local](docs/img/assistente-ia.png)
+
+**Lançamentos**, **importação de CSV** e **cadastros**:
+
+![Lançamentos](docs/img/lancamentos.png)
+
+![Importar dados](docs/img/importar-dados.png)
+
+![Cadastros](docs/img/cadastro.png)
 
 ## Decisões de projeto
 
@@ -108,6 +134,13 @@ O app usa o modelo definido em `OLLAMA_MODELO` (no `.env`); sem isso, usa o `qwe
 - **Conversa curta**: só as seis últimas mensagens acompanham cada pergunta, e cada conversa tem no máximo 20 perguntas.
 - **Uso de memória**: depois da última pergunta o modelo continua carregado por 10 minutos, ocupando RAM ou memória de vídeo. Para liberar na hora: `ollama stop qwen2.5:3b` (troque pelo nome do seu modelo).
 - **Não é consultoria financeira**: as respostas são sugestões para gastar com mais consciência, não recomendações de investimento.
+
+### Possíveis evoluções
+
+- **Prompt e resumo**: mais exemplos de boas respostas no prompt e mais cálculos já prontos no resumo (por exemplo, o gasto diário por categoria) reduzem os erros sem custo.
+- **Modelo maior**: com mais memória de vídeo, modelos de 14B ou mais respondem melhor. Basta baixá-los com `ollama pull` e escolher na tela.
+- **Modelo na nuvem (opcional)**: uma API paga daria respostas mais precisas e rápidas, ao custo de enviar o resumo agregado para fora do computador. A conversa com o modelo fica concentrada em `src/assistant/`, então trocar ou somar um provedor é uma mudança localizada.
+- **Ajuste fino (treinamento)**: foi descartado. Ele ensina estilo, não fatos, e os números mudam todo mês e já chegam pelo resumo.
 
 ## Testes
 
