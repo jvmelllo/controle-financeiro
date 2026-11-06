@@ -1,11 +1,11 @@
-import os
-
 import pandas as pd
 import streamlit as st
 
 from src.database import repositories as repo
 from src.services import importacao
 from src.utils.avisos import guardar_aviso, mostrar_aviso
+from src.utils.componentes import aviso_modo_demo
+from src.utils.configuracao import ler
 from src.utils.dinheiro import formatar_brl
 
 st.set_page_config(page_title="Importar dados", page_icon="📥", layout="wide")
@@ -14,10 +14,11 @@ st.caption(
     "Traga lançamentos de uma planilha (CSV). A importação é tudo ou nada: "
     "se algo falhar, nada é gravado."
 )
+aviso_modo_demo()
 
 mostrar_aviso()
 
-banco = os.getenv("DB_NAME", "?")
+banco = ler("DB_NAME", "?")
 eh_demo = banco.endswith("_demo")
 if eh_demo:
     st.info(f"Banco em uso: **{banco}** (dados de demonstração).")

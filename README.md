@@ -16,6 +16,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 - **Chat com IA local (opcional)**, com o Ollama: o modelo roda no seu computador (grátis e privado) e recebe apenas um resumo agregado dos números, nunca descrições de lançamentos nem nomes de contas.
 - **Cadastros** de categorias e contas.
 - **Importação de CSV** com modelo para baixar, validação linha a linha, detecção de lançamentos duplicados e gravação "tudo ou nada".
+- **Demonstração online (opcional)**: o mesmo app pode ser publicado na internet com dados fictícios e em modo somente leitura. Veja [Demonstração online](#demonstração-online-opcional).
 - **Tema claro e escuro**, com destaque em azul. Para trocar, abra o menu ⋮ (canto superior direito) e escolha *Light*, *Dark* ou *System* (segue o computador).
 
 ## Telas
@@ -54,6 +55,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 - **Camadas separadas**: `pages` (interface) → `services` (regras de negócio) → `repositories` (único lugar com SQL, sempre com parâmetros). Isso deixa as regras testáveis sem tela e sem banco.
 - **Três bancos com o mesmo schema**: `financeiro` (dados reais), `financeiro_demo` (dados fictícios para desenvolver e tirar prints) e `financeiro_teste` (usado pelo pytest, com trava que impede rodar os testes em outro banco).
 - **Usuário do banco com privilégios mínimos**: o app só tem SELECT, INSERT, UPDATE e DELETE.
+- **Demonstração segura**: com `MODO_DEMO=1` o app abre só bancos terminados em `_demo` e roda cada operação numa transação somente leitura, então o próprio MySQL recusa qualquer gravação. Os dados reais nunca precisam sair do computador.
 - **Regras antes da IA**: os alertas são funções puras, transparentes e testadas. A IA é uma camada extra e opcional.
 - **Privacidade**: segredos no `.env` (fora do Git). A IA roda localmente (Ollama), então nada sai da máquina, e ainda assim só recebe totais agregados.
 - **IA local com rede de proteção**: modelos pequenos erram contas, então o resumo já traz os cálculos prontos (média diária, projeção do mês, maior categoria) e a resposta passa por uma checagem que avisa quando cita um valor que não está nos dados.
@@ -61,7 +63,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 
 ## Tecnologias
 
-Python 3.11+ · MySQL 8 · Streamlit · Plotly · pandas · pytest · python-dotenv · Ollama (IA local, opcional)
+Python 3.11+ · MySQL 8 · Streamlit · Plotly · pandas · pytest · python-dotenv · Ollama (IA local, opcional) · Aiven e Streamlit Community Cloud (demonstração online, opcional)
 
 ## Como rodar
 
@@ -142,6 +144,70 @@ O app usa o modelo definido em `OLLAMA_MODELO` (no `.env`); sem isso, usa o `qwe
 - **Modelo na nuvem (opcional)**: uma API paga daria respostas mais precisas e rápidas, ao custo de enviar o resumo agregado para fora do computador. A conversa com o modelo fica concentrada em `src/assistant/`, então trocar ou somar um provedor é uma mudança localizada.
 - **Ajuste fino (treinamento)**: foi descartado. Ele ensina estilo, não fatos, e os números mudam todo mês e já chegam pelo resumo.
 
+## Demonstração online (opcional)
+
+Para deixar o app aberto por um link, sem depender do seu computador, dá para publicá-lo de graça com **dados fictícios**: o banco fica no [Aiven](https://aiven.io) (MySQL gratuito) e o app no [Streamlit Community Cloud](https://streamlit.io/cloud). A versão publicada funciona em **modo demonstração**:
+
+- É **somente leitura**: quem visitar pode navegar, filtrar e ver os gráficos, mas nada é salvo, editado ou excluído. O MySQL recusa as gravações, e as telas mostram um aviso em vez de quebrar.
+- Só abre bancos cujo nome termina em `_demo`. Se alguém configurar o banco real (`financeiro`) por engano, o app se recusa a iniciar.
+- O chat com IA não aparece, porque o Ollama roda no computador de quem usa. Os alertas por regras continuam.
+- Existe uma faixa no topo de cada tela explicando que é uma demonstração, com o link do projeto.
+
+**Nunca publique o banco `financeiro`** (dados reais) nem o arquivo `.env`. A senha do banco da demonstração fica só no painel de segredos do Streamlit, nunca no Git.
+
+### Passo a passo
+
+**1. Criar o banco no Aiven.** Crie uma conta em [aiven.io](https://aiven.io) (não pede cartão), clique em *Create service*, escolha **MySQL** e o plano **Free**. Quando o serviço estiver *Running*, copie da página dele o **host**, a **porta**, o **usuário** (`avnadmin`) e a **senha**.
+
+**2. Criar o banco e as tabelas.** No MySQL Workbench, crie uma conexão com esses dados (em *SSL*, escolha *Require*) e rode:
+
+```sql
+CREATE DATABASE financeiro_demo CHARACTER SET utf8mb4;
+USE financeiro_demo;
+```
+
+Em seguida, execute o conteúdo de `src/database/schema.sql` (*File > Open SQL Script* e clique no ícone do raio para executar).
+
+**3. Gerar os dados fictícios no Aiven.** No PowerShell, na pasta do projeto e com o ambiente virtual ativo, defina as variáveis (elas valem só nessa janela e têm prioridade sobre o `.env`):
+
+```powershell
+$env:DB_HOST = "host-do-aiven"
+$env:DB_PORT = "porta-do-aiven"
+$env:DB_USER = "avnadmin"
+$env:DB_PASSWORD = "senha-do-aiven"
+$env:DB_NAME = "financeiro_demo"
+python -m scripts.testar_conexao      # deve listar as tabelas
+python -m scripts.gerar_dados_demo
+```
+
+Depois feche a janela do PowerShell. Os dados são gerados a partir da data de hoje (últimos seis meses); rode o último comando de novo de vez em quando para o mês atual não ficar vazio.
+
+**4. (Opcional) Usuário só de leitura.** Para o banco recusar gravações mesmo que o app tivesse um defeito, crie um usuário que só lê e use-o no passo seguinte no lugar do `avnadmin`. Se o Aiven não permitir, pule: o app já recusa gravações sozinho.
+
+```sql
+CREATE USER 'demo_leitura'@'%' IDENTIFIED BY 'troque_esta_senha';
+GRANT SELECT ON financeiro_demo.* TO 'demo_leitura'@'%';
+```
+
+**5. Publicar no Streamlit Community Cloud.** Com o projeto no GitHub (repositório público), entre em [share.streamlit.io](https://share.streamlit.io) com a conta do GitHub e clique em *Create app*. Escolha o repositório `jvmelllo/controle-financeiro`, a branch `main` e o arquivo principal `app.py`. Em *Advanced settings*, selecione Python 3.11 ou mais novo e cole nos *Secrets* (o modelo está em `.streamlit/secrets.toml.example`):
+
+```toml
+MODO_DEMO = "1"
+DB_HOST = "host-do-aiven"
+DB_PORT = "porta-do-aiven"
+DB_USER = "avnadmin"
+DB_PASSWORD = "senha-do-aiven"
+DB_NAME = "financeiro_demo"
+```
+
+Clique em *Deploy*. A primeira publicação leva alguns minutos, porque instala as dependências. Depois, o painel *Settings > Secrets* do app permite trocar esses valores e *Settings > General* permite escolher o endereço (subdomínio).
+
+### Observações
+
+- **Repouso**: o Streamlit coloca apps sem visitas para dormir (um clique em *Wake up* acorda) e o Aiven pode desligar um serviço gratuito sem atividade. Se o app mostrar erro de conexão, abra o serviço no Aiven e ligue-o de novo.
+- **Testar o modo demonstração no computador**: coloque `MODO_DEMO=1` no `.env`, com `DB_NAME=financeiro_demo`, e reinicie o app. Para voltar ao uso normal, apague a linha.
+- **Mensagens comuns**: *Configuração ausente* significa que falta algum item nos *Secrets*; *só é permitido um banco que termine em _demo* significa que o `DB_NAME` está errado.
+
 ## Testes
 
 ```powershell
@@ -155,13 +221,13 @@ Mais de 180 testes automatizados cobrem utilitários, regras de negócio, reposi
 ```
 app.py                página inicial
 pages/                telas do Streamlit
-.streamlit/           tema claro e escuro (config.toml)
+.streamlit/           tema claro e escuro (config.toml) e modelo dos segredos da demonstração
 src/
   assistant/          regras, alertas, resumo para a IA e cliente do Ollama
   charts/             gráficos Plotly
   database/           conexão, schema.sql e repositórios (único lugar com SQL)
   services/           regras de negócio (fluxo de caixa, orçamento, metas)
-  utils/              dinheiro, datas e componentes de tela
+  utils/              dinheiro, datas, configuração e componentes de tela
 scripts/              dados de demonstração e teste de conexão
 tests/                testes automatizados
 docs/                 documentação e imagens

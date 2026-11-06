@@ -6,6 +6,8 @@ from src.assistant import ia, modelos, regras
 from src.assistant.alertas import gerar_alertas
 from src.assistant.contexto import montar_contexto
 from src.utils.alertas_ui import exibir_alerta
+from src.utils.componentes import aviso_modo_demo
+from src.utils.configuracao import modo_demo
 from src.utils.dinheiro import escapar_markdown
 
 LIMITE_PERGUNTAS_POR_SESSAO = 20  # a conversa longa deixa o modelo local lento e confuso
@@ -21,6 +23,7 @@ st.caption(
     "Analisa seus lançamentos, orçamentos e metas do mês e aponta o que merece atenção, "
     "sempre com uma sugestão do que fazer."
 )
+aviso_modo_demo()
 
 with st.expander("Analisar outra data"):
     hoje = st.date_input("Data de referência", value=date.today(), format="DD/MM/YYYY")
@@ -58,6 +61,13 @@ st.caption(
     "O chat usa o Ollama, que roda no seu computador: nada sai da sua máquina e não há custo. "
     "É opcional; os alertas acima funcionam sem ele."
 )
+
+if modo_demo():
+    st.info(
+        "O chat com IA roda no computador de quem usa o projeto (com o Ollama) e não está disponível "
+        "nesta demonstração. Os alertas acima funcionam normalmente."
+    )
+    st.stop()
 
 diagnostico = ia.diagnosticar()
 

@@ -3,11 +3,13 @@ import streamlit as st
 from src.database import repositories as repo
 from src.utils.avisos import guardar_aviso, mostrar_aviso
 from src.utils.campos import campo_valor
+from src.utils.componentes import aviso_modo_demo
 from src.utils.dinheiro import formatar_brl, reais_para_centavos
 
 st.set_page_config(page_title="Cadastros", page_icon="🗂️")
 st.title("Cadastros")
 st.caption("Organize as categorias e as contas usadas nos seus lançamentos.")
+aviso_modo_demo()
 
 TIPOS_CONTA = {
     "carteira": "Carteira", "corrente": "Conta corrente",
@@ -51,9 +53,13 @@ def bloco_de_categorias(tipo: str, titulo: str, categorias: list[dict]) -> None:
                 except ValueError as erro:
                     st.error(str(erro))
         if col_desativar.button(":material/block:", key=f"desativar_{c['id']}", help="Desativar (mantém o histórico)"):
-            repo.definir_categoria_ativa(c["id"], False)
-            guardar_aviso(f"Categoria '{c['nome']}' desativada.")
-            st.rerun()
+            try:
+                repo.definir_categoria_ativa(c["id"], False)
+            except ValueError as erro:
+                st.toast(str(erro))  # a coluna do botão é estreita demais para uma caixa de erro
+            else:
+                guardar_aviso(f"Categoria '{c['nome']}' desativada.")
+                st.rerun()
 
     if inativas:
         with st.expander(f"Desativadas ({len(inativas)})"):
@@ -61,9 +67,13 @@ def bloco_de_categorias(tipo: str, titulo: str, categorias: list[dict]) -> None:
                 col_nome, col_acao = st.columns([5, 2], vertical_alignment="center")
                 col_nome.write(c["nome"])
                 if col_acao.button("Reativar", key=f"reativar_{c['id']}"):
-                    repo.definir_categoria_ativa(c["id"], True)
-                    guardar_aviso(f"Categoria '{c['nome']}' reativada.")
-                    st.rerun()
+                    try:
+                        repo.definir_categoria_ativa(c["id"], True)
+                    except ValueError as erro:
+                        st.toast(str(erro))
+                    else:
+                        guardar_aviso(f"Categoria '{c['nome']}' reativada.")
+                        st.rerun()
 
 
 aba_categorias, aba_contas = st.tabs(["Categorias", "Contas"])

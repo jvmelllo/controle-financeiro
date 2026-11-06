@@ -4,6 +4,7 @@ from datetime import date, timedelta
 import streamlit as st
 from src.assistant.alertas import gerar_alertas
 from src.utils.alertas_ui import exibir_alerta
+from src.utils.componentes import aviso_modo_demo
 from src.charts import graficos
 from src.services import fluxo_caixa
 from src.utils.datas import (
@@ -18,6 +19,7 @@ from src.utils.dinheiro import formatar_brl
 st.set_page_config(page_title="Dashboard", page_icon="📊", layout="wide")
 st.title("Dashboard")
 st.caption("Saldo, entradas, saídas e gastos por categoria no período que você escolher.")
+aviso_modo_demo()
 
 # Alertas do mês atual (independem do período escolhido abaixo)
 importantes = [a for a in gerar_alertas() if a.nivel != "info"]

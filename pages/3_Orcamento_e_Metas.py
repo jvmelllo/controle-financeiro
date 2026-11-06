@@ -7,7 +7,7 @@ from src.services import fluxo_caixa, orcamento
 from src.services import metas as servico_metas
 from src.utils.avisos import guardar_aviso, mostrar_aviso
 from src.utils.campos import campo_valor
-from src.utils.componentes import barra_de_progresso
+from src.utils.componentes import aviso_modo_demo, barra_de_progresso
 from src.utils.datas import deslocar_meses, rotulo_mes
 from src.utils.dinheiro import escapar_markdown, formatar_brl, reais_para_centavos
 from src.utils.tema import AMARELO, AZUL, COR_DA_SITUACAO, VERDE
@@ -15,6 +15,7 @@ from src.utils.tema import AMARELO, AZUL, COR_DA_SITUACAO, VERDE
 st.set_page_config(page_title="Orçamento e metas", page_icon="🎯", layout="wide")
 st.title("Orçamento e metas")
 st.caption("Defina limites de gasto por categoria e acompanhe as reservas das suas metas.")
+aviso_modo_demo()
 
 HOJE = date.today()
 
@@ -56,9 +57,13 @@ def cartao_do_limite(item: dict, mes: str) -> None:
                     except ValueError as erro:
                         st.error(str(erro))
             if st.button("Remover limite", key=f"remover_limite_{mes}_{categoria_id}"):
-                repo.remover_orcamento(categoria_id, mes)
-                guardar_aviso(f"Limite de {item['categoria']} removido.")
-                st.rerun()
+                try:
+                    repo.remover_orcamento(categoria_id, mes)
+                except ValueError as erro:
+                    st.error(str(erro))
+                else:
+                    guardar_aviso(f"Limite de {item['categoria']} removido.")
+                    st.rerun()
 
         barra_de_progresso(item["percentual"], COR_DA_SITUACAO[item["situacao"]])
         st.markdown(escapar_markdown(
@@ -85,13 +90,17 @@ with aba_orcamento:
     mes = col_mes.selectbox("Mês", meses, index=meses.index(mes_atual), format_func=rotulo_mes)
     mes_anterior = deslocar_meses(date(int(mes[:4]), int(mes[5:]), 1), -1).strftime("%Y-%m")
     if col_copiar.button(f"Copiar limites de {rotulo_mes(mes_anterior)}"):
-        copiados = repo.copiar_orcamentos(mes_anterior, mes)
-        guardar_aviso(
-            f"{copiados} limite(s) copiado(s)."
-            if copiados
-            else "Nada para copiar: o mês anterior não tem limites ou eles já estão definidos aqui."
-        )
-        st.rerun()
+        try:
+            copiados = repo.copiar_orcamentos(mes_anterior, mes)
+        except ValueError as erro:
+            st.error(str(erro))
+        else:
+            guardar_aviso(
+                f"{copiados} limite(s) copiado(s)."
+                if copiados
+                else "Nada para copiar: o mês anterior não tem limites ou eles já estão definidos aqui."
+            )
+            st.rerun()
 
     status = orcamento.status_do_orcamento(mes)
 
@@ -214,10 +223,14 @@ def cartao_da_meta(meta: dict) -> None:
                         ":material/delete:", key=f"excluir_contribuicao_{contribuicao['id']}",
                         help="Excluir esta contribuição",
                     ):
-                        repo.excluir_aporte(contribuicao["id"])
-                        manter_aberta(mid)
-                        guardar_aviso("Contribuição excluída.", "aviso_metas")
-                        st.rerun()
+                        try:
+                            repo.excluir_aporte(contribuicao["id"])
+                        except ValueError as erro:
+                            st.toast(str(erro))  # a coluna do botão é estreita demais para uma caixa de erro
+                        else:
+                            manter_aberta(mid)
+                            guardar_aviso("Contribuição excluída.", "aviso_metas")
+                            st.rerun()
                 if len(contribuicoes) > 20:
                     st.caption(f"Mostrando as 20 mais recentes de {len(contribuicoes)}.")
 
@@ -255,9 +268,13 @@ def cartao_da_meta(meta: dict) -> None:
                     key=f"meta_confirmar_{mid}",
                 )
                 if st.button("Excluir meta", disabled=not confirmar, key=f"meta_excluir_{mid}"):
-                    repo.excluir_meta(mid)
-                    guardar_aviso("Meta excluída.", "aviso_metas")
-                    st.rerun()
+                    try:
+                        repo.excluir_meta(mid)
+                    except ValueError as erro:
+                        st.error(str(erro))
+                    else:
+                        guardar_aviso("Meta excluída.", "aviso_metas")
+                        st.rerun()
 
 
 with aba_metas:

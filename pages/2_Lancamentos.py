@@ -9,12 +9,14 @@ from src.services import metas as servico_metas
 from src.services.validacoes import validar_lancamento
 from src.utils.avisos import guardar_aviso, mostrar_aviso
 from src.utils.campos import campo_valor
+from src.utils.componentes import aviso_modo_demo
 from src.utils.dinheiro import escapar_markdown, formatar_brl, reais_para_centavos
 
 
 st.set_page_config(page_title="Lançamentos", page_icon="💸")
 st.title("Lançamentos")
 st.caption("Registre entradas e saídas e consulte o histórico, com filtros, edição e exclusão.")
+aviso_modo_demo()
 
 ROTULO_TIPO = {"entrada": "Entrada", "saida": "Saída"}
 FORMAS = {
@@ -100,10 +102,14 @@ def editar_lancamento(t: dict) -> None:
             key=f"confirmar_{tid}",
         )
         if st.button("Excluir lançamento", disabled=not confirmar, key=f"excluir_{tid}"):
-            repo.excluir_transacao(tid)
-            recarregar_tabela()
-            guardar_aviso("Lançamento excluído.")
-            st.rerun()
+            try:
+                repo.excluir_transacao(tid)
+            except ValueError as erro:
+                st.error(str(erro))
+            else:
+                recarregar_tabela()
+                guardar_aviso("Lançamento excluído.")
+                st.rerun()
 
 
 aba_novo, aba_historico = st.tabs(["Novo lançamento", "Histórico"])

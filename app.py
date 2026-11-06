@@ -7,12 +7,14 @@ from src.assistant.alertas import gerar_alertas
 from src.database import repositories as repo
 from src.services import fluxo_caixa
 from src.utils.alertas_ui import exibir_alerta
+from src.utils.componentes import aviso_modo_demo
 from src.utils.datas import intervalo_do_mes
 from src.utils.dinheiro import formatar_brl
 
 st.set_page_config(page_title="Controle Financeiro", page_icon="💰")
 st.title("Controle Financeiro")
 st.caption("Fluxo de caixa, orçamento, metas e um assistente para gastar com mais consciência.")
+aviso_modo_demo()
 
 hoje = date.today()
 inicio, fim = intervalo_do_mes(f"{hoje.year:04d}-{hoje.month:02d}")
