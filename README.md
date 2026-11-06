@@ -55,7 +55,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 - **Camadas separadas**: `pages` (interface) → `services` (regras de negócio) → `repositories` (único lugar com SQL, sempre com parâmetros). Isso deixa as regras testáveis sem tela e sem banco.
 - **Três bancos com o mesmo schema**: `financeiro` (dados reais), `financeiro_demo` (dados fictícios para desenvolver e tirar prints) e `financeiro_teste` (usado pelo pytest, com trava que impede rodar os testes em outro banco).
 - **Usuário do banco com privilégios mínimos**: o app só tem SELECT, INSERT, UPDATE e DELETE.
-- **Demonstração segura**: com `MODO_DEMO=1` o app abre só bancos terminados em `_demo` e roda cada operação numa transação somente leitura, então o próprio MySQL recusa qualquer gravação. Os dados reais nunca precisam sair do computador.
+- **Demonstração segura**: com `MODO_DEMO=1` o app abre só bancos terminados em `_demo`, confere cada comando SQL (só consultas passam) e ainda abre transações somente leitura nos servidores que respeitam isso. Os dados reais nunca precisam sair do computador.
 - **Regras antes da IA**: os alertas são funções puras, transparentes e testadas. A IA é uma camada extra e opcional.
 - **Privacidade**: segredos no `.env` (fora do Git). A IA roda localmente (Ollama), então nada sai da máquina, e ainda assim só recebe totais agregados.
 - **IA local com rede de proteção**: modelos pequenos erram contas, então o resumo já traz os cálculos prontos (média diária, projeção do mês, maior categoria) e a resposta passa por uma checagem que avisa quando cita um valor que não está nos dados.
@@ -63,7 +63,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 
 ## Tecnologias
 
-Python 3.11+ · MySQL 8 · Streamlit · Plotly · pandas · pytest · python-dotenv · Ollama (IA local, opcional) · Aiven e Streamlit Community Cloud (demonstração online, opcional)
+Python 3.11+ · MySQL 8 · Streamlit · Plotly · pandas · pytest · python-dotenv · Ollama (IA local, opcional) · TiDB Cloud e Streamlit Community Cloud (demonstração online, opcional)
 
 ## Como rodar
 
@@ -146,57 +146,40 @@ O app usa o modelo definido em `OLLAMA_MODELO` (no `.env`); sem isso, usa o `qwe
 
 ## Demonstração online (opcional)
 
-Para deixar o app aberto por um link, sem depender do seu computador, dá para publicá-lo de graça com **dados fictícios**: o banco fica no [Aiven](https://aiven.io) (MySQL gratuito) e o app no [Streamlit Community Cloud](https://streamlit.io/cloud). A versão publicada funciona em **modo demonstração**:
+Para deixar o app aberto por um link, sem depender do seu computador, dá para publicá-lo de graça com **dados fictícios**: o banco fica no [TiDB Cloud](https://tidbcloud.com) (compatível com MySQL, plano gratuito sem cartão) e o app no [Streamlit Community Cloud](https://streamlit.io/cloud). A versão publicada funciona em **modo demonstração**:
 
-- É **somente leitura**: quem visitar pode navegar, filtrar e ver os gráficos, mas nada é salvo, editado ou excluído. O MySQL recusa as gravações, e as telas mostram um aviso em vez de quebrar.
+- É **somente leitura**: quem visitar pode navegar, filtrar e ver os gráficos, mas nada é salvo, editado ou excluído. As telas mostram um aviso em vez de quebrar.
+- Duas travas impedem gravações: cada comando SQL é conferido antes de ir ao banco (só consultas passam) e, nos servidores que respeitam isso, a transação também é aberta como somente leitura. O TiDB ignora essa segunda trava, por isso a primeira existe.
 - Só abre bancos cujo nome termina em `_demo`. Se alguém configurar o banco real (`financeiro`) por engano, o app se recusa a iniciar.
 - O chat com IA não aparece, porque o Ollama roda no computador de quem usa. Os alertas por regras continuam.
-- Existe uma faixa no topo de cada tela explicando que é uma demonstração, com o link do projeto.
+- Uma faixa no topo de cada tela explica que é uma demonstração, com o link do projeto.
 
 **Nunca publique o banco `financeiro`** (dados reais) nem o arquivo `.env`. A senha do banco da demonstração fica só no painel de segredos do Streamlit, nunca no Git.
 
 ### Passo a passo
 
-**1. Criar o banco no Aiven.** Crie uma conta em [aiven.io](https://aiven.io) (não pede cartão), clique em *Create service*, escolha **MySQL** e o plano **Free**. Quando o serviço estiver *Running*, copie da página dele o **host**, a **porta**, o **usuário** (`avnadmin`) e a **senha**.
+**1. Criar o banco no TiDB Cloud.** Crie uma conta em [tidbcloud.com](https://tidbcloud.com) (entra com Google ou GitHub e não pede cartão) e crie uma instância do plano **Starter**, que é o gratuito. Depois abra a instância, clique em **Connect**, deixe *Connect with* em **General** e clique em **Generate Password**. Anote o **host**, a **porta** (4000), o **usuário** e a **senha**: a senha aparece uma única vez. Os nomes dos botões podem variar um pouco.
 
-**2. Criar o banco e as tabelas.** No MySQL Workbench, crie uma conexão com esses dados (em *SSL*, escolha *Require*) e rode:
-
-```sql
-CREATE DATABASE financeiro_demo CHARACTER SET utf8mb4;
-USE financeiro_demo;
-```
-
-Em seguida, execute o conteúdo de `src/database/schema.sql` (*File > Open SQL Script* e clique no ícone do raio para executar).
-
-**3. Gerar os dados fictícios no Aiven.** No PowerShell, na pasta do projeto e com o ambiente virtual ativo, defina as variáveis (elas valem só nessa janela e têm prioridade sobre o `.env`):
+**2. Preparar o banco e os dados fictícios (um comando).** No PowerShell, na pasta do projeto e com o ambiente virtual ativo, defina as variáveis (elas valem só nessa janela e têm prioridade sobre o `.env`) e rode o script:
 
 ```powershell
-$env:DB_HOST = "host-do-aiven"
-$env:DB_PORT = "porta-do-aiven"
-$env:DB_USER = "avnadmin"
-$env:DB_PASSWORD = "senha-do-aiven"
-$env:DB_NAME = "financeiro_demo"
-python -m scripts.testar_conexao      # deve listar as tabelas
-python -m scripts.gerar_dados_demo
+$env:DB_HOST = "host-do-tidb"
+$env:DB_PORT = "4000"
+$env:DB_USER = "usuario-do-tidb"
+$env:DB_PASSWORD = "senha-do-tidb"
+python -m scripts.preparar_demo
 ```
 
-Depois feche a janela do PowerShell. Os dados são gerados a partir da data de hoje (últimos seis meses); rode o último comando de novo de vez em quando para o mês atual não ficar vazio.
+O script cria o banco `financeiro_demo`, as tabelas e os dados fictícios (últimos seis meses). Pode ser repetido: as tabelas são mantidas e os dados são gerados de novo, o que vale a pena fazer de vez em quando para o mês atual não ficar vazio. Depois, feche a janela do PowerShell.
 
-**4. (Opcional) Usuário só de leitura.** Para o banco recusar gravações mesmo que o app tivesse um defeito, crie um usuário que só lê e use-o no passo seguinte no lugar do `avnadmin`. Se o Aiven não permitir, pule: o app já recusa gravações sozinho.
-
-```sql
-CREATE USER 'demo_leitura'@'%' IDENTIFIED BY 'troque_esta_senha';
-GRANT SELECT ON financeiro_demo.* TO 'demo_leitura'@'%';
-```
-
-**5. Publicar no Streamlit Community Cloud.** Com o projeto no GitHub (repositório público), entre em [share.streamlit.io](https://share.streamlit.io) com a conta do GitHub e clique em *Create app*. Escolha o repositório `jvmelllo/controle-financeiro`, a branch `main` e o arquivo principal `app.py`. Em *Advanced settings*, selecione Python 3.11 ou mais novo e cole nos *Secrets* (o modelo está em `.streamlit/secrets.toml.example`):
+**3. Publicar no Streamlit Community Cloud.** Com o projeto no GitHub (repositório público), entre em [share.streamlit.io](https://share.streamlit.io) com a conta do GitHub e clique em *Create app*. Escolha o repositório `jvmelllo/controle-financeiro`, a branch `main` e o arquivo principal `app.py`. Em *Advanced settings*, selecione Python 3.11 ou mais novo e cole nos *Secrets* (o modelo está em `.streamlit/secrets.toml.example`):
 
 ```toml
 MODO_DEMO = "1"
-DB_HOST = "host-do-aiven"
-DB_PORT = "porta-do-aiven"
-DB_USER = "avnadmin"
-DB_PASSWORD = "senha-do-aiven"
+DB_HOST = "host-do-tidb"
+DB_PORT = "4000"
+DB_USER = "usuario-do-tidb"
+DB_PASSWORD = "senha-do-tidb"
 DB_NAME = "financeiro_demo"
 ```
 
@@ -204,7 +187,9 @@ Clique em *Deploy*. A primeira publicação leva alguns minutos, porque instala 
 
 ### Observações
 
-- **Repouso**: o Streamlit coloca apps sem visitas para dormir (um clique em *Wake up* acorda) e o Aiven pode desligar um serviço gratuito sem atividade. Se o app mostrar erro de conexão, abra o serviço no Aiven e ligue-o de novo.
+- **Limites do plano gratuito**: 5 GB de armazenamento e 50 milhões de unidades de uso por mês, muito mais do que uma demonstração precisa. Se a cota acabasse, o TiDB recusaria novas conexões até o mês seguinte.
+- **Repouso**: o Streamlit coloca apps sem visitas para dormir; um clique em *Wake up* acorda. Se o app mostrar erro de conexão, confira no TiDB Cloud se a instância está ativa e se aceita conexões de qualquer endereço (o Streamlit não tem IP fixo).
+- **Conexão segura**: o TiDB Cloud exige TLS e o app se conecta com ele. Se aparecer erro de certificado, adicione aos *Secrets* a linha `DB_SSL_CA = "/etc/ssl/certs/ca-certificates.crt"`.
 - **Testar o modo demonstração no computador**: coloque `MODO_DEMO=1` no `.env`, com `DB_NAME=financeiro_demo`, e reinicie o app. Para voltar ao uso normal, apague a linha.
 - **Mensagens comuns**: *Configuração ausente* significa que falta algum item nos *Secrets*; *só é permitido um banco que termine em _demo* significa que o `DB_NAME` está errado.
 
@@ -228,7 +213,7 @@ src/
   database/           conexão, schema.sql e repositórios (único lugar com SQL)
   services/           regras de negócio (fluxo de caixa, orçamento, metas)
   utils/              dinheiro, datas, configuração e componentes de tela
-scripts/              dados de demonstração e teste de conexão
+scripts/              dados de demonstração, preparo do banco da demo e teste de conexão
 tests/                testes automatizados
 docs/                 documentação e imagens
 ```

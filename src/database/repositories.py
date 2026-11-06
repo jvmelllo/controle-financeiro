@@ -316,7 +316,7 @@ def definir_orcamento(categoria_id: int, mes: str, limite: int) -> None:
             raise ValueError("Só categorias de saída podem ter limite de gasto.")
         cur.execute(
             """INSERT INTO orcamentos (categoria_id, mes, limite) VALUES (%s, %s, %s)
-               AS novo ON DUPLICATE KEY UPDATE limite = novo.limite""",
+               ON DUPLICATE KEY UPDATE limite = VALUES(limite)""",
             (categoria_id, mes, limite),
         )
 
