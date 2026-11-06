@@ -42,8 +42,8 @@ if importantes:
 ALTURA_CARTAO = 190  # altura fixa: os cartões ficam alinhados já no primeiro carregamento
 ATALHOS = [
     ("pages/1_Dashboard.py", "Dashboard", "Saldo, gráficos e evolução do período."),
-    ("pages/2_Lancamentos.py", "Lançamentos", "Registre entradas e saídas e consulte o histórico."),
-    ("pages/3_Orcamento_e_Metas.py", "Orçamento e metas", "Limites por categoria e reservas."),
+    ("pages/2_Lançamentos.py", "Lançamentos", "Registre entradas e saídas e consulte o histórico."),
+    ("pages/3_Orçamento_e_Metas.py", "Orçamento e metas", "Limites por categoria e reservas."),
     ("pages/4_Assistente.py", "Assistente", "Alertas e sugestões para gastar melhor."),
     ("pages/5_Importar_Dados.py", "Importar dados", "Traga lançamentos de uma planilha CSV."),
     ("pages/6_Cadastros.py", "Cadastros", "Categorias e contas."),

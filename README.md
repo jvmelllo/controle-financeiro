@@ -1,6 +1,8 @@
-# 💰 Controle Financeiro
+# Controle Financeiro
 
 Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e metas e receber alertas para gastar com mais consciência. Projeto de portfólio feito com Python, MySQL e Streamlit.
+
+**[Ver a demonstração online](https://controle-financeiro-7gu49mqhtedyohdvceqzqd.streamlit.app/)**: o app funcionando com dados fictícios, em modo somente leitura. Se ele estiver dormindo, clique no botão para acordá-lo e espere cerca de 30 segundos.
 
 > Os prints abaixo usam apenas **dados fictícios** (banco `financeiro_demo`).
 
@@ -53,7 +55,7 @@ Aplicativo web pessoal para acompanhar o fluxo de caixa, definir orçamentos e m
 
 - **Dinheiro em centavos inteiros** (`BIGINT`): evita erros de arredondamento de ponto flutuante.
 - **Camadas separadas**: `pages` (interface) → `services` (regras de negócio) → `repositories` (único lugar com SQL, sempre com parâmetros). Isso deixa as regras testáveis sem tela e sem banco.
-- **Três bancos com o mesmo schema**: `financeiro` (dados reais), `financeiro_demo` (dados fictícios para desenvolver e tirar prints) e `financeiro_teste` (usado pelo pytest, com trava que impede rodar os testes em outro banco).
+- **Três bancos com o mesmo schema**: `financeiro` (dados reais), `financeiro_demo` (dados fictícios para desenvolver e tirar prints) e `financeiro_teste` (usado pelo pytest, com travas que impedem rodar os testes em outro banco ou fora do seu computador).
 - **Usuário do banco com privilégios mínimos**: o app só tem SELECT, INSERT, UPDATE e DELETE.
 - **Demonstração segura**: com `MODO_DEMO=1` o app abre só bancos terminados em `_demo`, confere cada comando SQL (só consultas passam) e ainda abre transações somente leitura nos servidores que respeitam isso. Os dados reais nunca precisam sair do computador.
 - **Regras antes da IA**: os alertas são funções puras, transparentes e testadas. A IA é uma camada extra e opcional.
@@ -170,7 +172,7 @@ $env:DB_PASSWORD = "senha-do-tidb"
 python -m scripts.preparar_demo
 ```
 
-O script cria o banco `financeiro_demo`, as tabelas e os dados fictícios (últimos seis meses). Pode ser repetido: as tabelas são mantidas e os dados são gerados de novo, o que vale a pena fazer de vez em quando para o mês atual não ficar vazio. Depois, feche a janela do PowerShell.
+O script cria o banco `financeiro_demo`, as tabelas e os dados fictícios (últimos seis meses). Pode ser repetido: as tabelas são mantidas e os dados são gerados de novo, o que vale a pena fazer de vez em quando para o mês atual não ficar vazio. Depois, **feche a janela do PowerShell**: as variáveis continuam ativas nela e os testes se recusariam a rodar.
 
 **3. Publicar no Streamlit Community Cloud.** Com o projeto no GitHub (repositório público), entre em [share.streamlit.io](https://share.streamlit.io) com a conta do GitHub e clique em *Create app*. Escolha o repositório `jvmelllo/controle-financeiro`, a branch `main` e o arquivo principal `app.py`. Em *Advanced settings*, selecione Python 3.11 ou mais novo e cole nos *Secrets* (o modelo está em `.streamlit/secrets.toml.example`):
 
@@ -188,7 +190,7 @@ Clique em *Deploy*. A primeira publicação leva alguns minutos, porque instala 
 ### Observações
 
 - **Limites do plano gratuito**: 5 GB de armazenamento e 50 milhões de unidades de uso por mês, muito mais do que uma demonstração precisa. Se a cota acabasse, o TiDB recusaria novas conexões até o mês seguinte.
-- **Repouso**: o Streamlit coloca apps sem visitas para dormir; um clique em *Wake up* acorda. Se o app mostrar erro de conexão, confira no TiDB Cloud se a instância está ativa e se aceita conexões de qualquer endereço (o Streamlit não tem IP fixo).
+- **Repouso**: o Streamlit coloca apps sem visitas para dormir; quem abrir o link vê um botão (*Yes, get this app back up!*) e o app volta em cerca de 30 segundos. Se o app mostrar erro de conexão, confira no TiDB Cloud se a instância está ativa e se aceita conexões de qualquer endereço (o Streamlit não tem IP fixo).
 - **Conexão segura**: o TiDB Cloud exige TLS e o app se conecta com ele. Se aparecer erro de certificado, adicione aos *Secrets* a linha `DB_SSL_CA = "/etc/ssl/certs/ca-certificates.crt"`.
 - **Testar o modo demonstração no computador**: coloque `MODO_DEMO=1` no `.env`, com `DB_NAME=financeiro_demo`, e reinicie o app. Para voltar ao uso normal, apague a linha.
 - **Mensagens comuns**: *Configuração ausente* significa que falta algum item nos *Secrets*; *só é permitido um banco que termine em _demo* significa que o `DB_NAME` está errado.
@@ -199,7 +201,7 @@ Clique em *Deploy*. A primeira publicação leva alguns minutos, porque instala 
 python -m pytest
 ```
 
-Mais de 180 testes automatizados cobrem utilitários, regras de negócio, repositórios (no banco `financeiro_teste`), o assistente e o tema. Nenhum teste usa a internet nem precisa do Ollama instalado: o servidor é simulado.
+Cerca de 250 testes automatizados cobrem utilitários, regras de negócio, repositórios (no banco `financeiro_teste`), o assistente e o tema. Nenhum teste usa a internet nem precisa do Ollama instalado: o servidor é simulado. Os testes que usam o banco só rodam no MySQL do seu computador: se alguma variável `DB_*` do terminal apontar para outro servidor (por exemplo, depois de preparar a demonstração), o pytest para com um aviso.
 
 ## Estrutura
 
