@@ -10,3 +10,6 @@ __pycache__/
 # Dados reais (nunca no Git)
 data/*
 !data/.gitkeep
+
+# Configurações do editor
+.vscode/

@@ -75,14 +75,39 @@ python -m scripts.gerar_dados_demo
 streamlit run app.py
 ```
 
-6. (Opcional) Para ativar o chat com IA local, instale o [Ollama](https://ollama.com), abra o aplicativo e baixe um modelo:
+6. (Opcional) Para ativar o chat com IA local, veja a seção [Assistente com IA local](#assistente-com-ia-local-opcional). Sem ele, tudo funciona, só o chat fica desativado.
+
+## Assistente com IA local (opcional)
+
+O chat usa o [Ollama](https://ollama.com) para rodar um modelo de linguagem no próprio computador: sem custo por pergunta, sem conta e sem enviar dados para a internet. Os alertas por regras, na mesma tela, funcionam sem ele.
+
+### O que é preciso
+
+- **Ollama** instalado e aberto (no Windows, o ícone fica na bandeja do sistema).
+- **Um modelo baixado.** A tela do Assistente confere isso sozinha e mostra o comando que faltar.
+- **Espaço em disco**: de 2 a 5 GB, conforme o modelo.
+- **Hardware**: quanto mais potente, melhor a experiência.
+
+| Computador | Modelo indicado | Observação |
+|---|---|---|
+| 8 GB de RAM, sem placa de vídeo dedicada | `qwen2.5:3b` (cerca de 2 GB) | Roda no processador: funciona, mas é mais lento. Feche programas pesados enquanto usa. |
+| 16 GB de RAM ou mais, ou placa NVIDIA com 8 GB de memória de vídeo | `qwen2.5:7b` (cerca de 4,7 GB) | Mais preciso com números e português. Testado em uma RTX 2060 SUPER, onde roda inteiro na placa de vídeo. |
 
 ```powershell
 winget install Ollama.Ollama
-ollama pull qwen2.5:3b
+ollama pull qwen2.5:3b     # ou qwen2.5:7b, conforme a tabela
 ```
 
-   A tela do Assistente indica o modelo mais adequado à memória do computador e lista outras opções. Para trocar o modelo padrão, defina `OLLAMA_MODELO` no `.env`. Sem o Ollama, tudo funciona, só o chat fica desativado.
+O app usa o modelo definido em `OLLAMA_MODELO` (no `.env`); sem isso, usa o `qwen2.5:3b` se estiver instalado e, senão, o primeiro modelo que encontrar. Na tela é possível trocar de modelo a qualquer momento.
+
+### Limitações
+
+- **Velocidade**: a resposta leva alguns segundos para começar, principalmente a primeira pergunta, porque o modelo precisa ser carregado na memória. Sem placa de vídeo, fica ainda mais lenta. O texto aparece aos poucos, enquanto o modelo escreve.
+- **Precisão**: modelos locais pequenos erram contas e podem inventar números. Por isso o resumo enviado já traz os cálculos prontos e o app avisa quando a resposta cita um valor que não está nos dados. Os números dos painéis são sempre a referência.
+- **Escopo**: o modelo só enxerga um resumo agregado (mês atual, três meses anteriores, categorias, orçamentos, metas e alertas). Não responde sobre um lançamento específico, porque descrições e nomes de contas nunca são enviados.
+- **Conversa curta**: só as seis últimas mensagens acompanham cada pergunta, e cada conversa tem no máximo 20 perguntas.
+- **Uso de memória**: depois da última pergunta o modelo continua carregado por 10 minutos, ocupando RAM ou memória de vídeo. Para liberar na hora: `ollama stop qwen2.5:3b` (troque pelo nome do seu modelo).
+- **Não é consultoria financeira**: as respostas são sugestões para gastar com mais consciência, não recomendações de investimento.
 
 ## Testes
 
@@ -111,4 +136,4 @@ docs/                 documentação e imagens
 
 ## Autor
 
-João, estudante de Sistemas de Informação. <cole aqui o link do seu LinkedIn>
+João, estudante de Sistemas de Informação. [LinkedIn](https://www.linkedin.com/in/jo%C3%A3o-vitor-mello-689940213/)
