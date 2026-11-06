@@ -70,7 +70,7 @@ Python 3.11+ · MySQL 8 · Streamlit · Plotly · pandas · pytest · python-dot
 1. Baixe o projeto e instale as dependências:
 
 ```powershell
-git clone <url-do-repositorio>
+git clone https://github.com/jvmelllo/controle-financeiro.git
 cd controle-financeiro
 python -m venv .venv
 .venv\Scripts\Activate.ps1
@@ -166,6 +166,10 @@ scripts/              dados de demonstração e teste de conexão
 tests/                testes automatizados
 docs/                 documentação e imagens
 ```
+
+## Licença
+
+Distribuído sob a licença MIT. Veja o arquivo [LICENSE](LICENSE).
 
 ## Autor
 
